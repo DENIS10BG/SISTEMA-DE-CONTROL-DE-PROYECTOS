@@ -44,42 +44,51 @@ import Letras from '../assets/images/LetrasFooter.png'
 .footer {
   background-color: #263238;
   color: white;
-  padding: 2rem 2rem 1rem;
+  padding: 1rem 2.2rem 0.7rem;
   margin-top: auto;
-  overflow: hidden;
+  overflow: auto;
+  height: 20vh;
+  box-sizing: border-box;
 
   .footer-container {
     max-width: 1200px;
     margin: 0 auto;
+    height: 100%;
     display: grid;
-    grid-template-columns: 1fr 250px 250px 1fr;
-    gap: 1rem;
+    grid-template-columns: 1.1fr 0.85fr 0.85fr 1.2fr;
+    gap: 0.9rem;
 
     .footer-section {
       h4 {
-        margin-bottom: 1rem;
-        color: #4caf50;
+        margin: 0 0 0.55rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #eef3f6;
       }
 
       p {
-        margin: 0.3rem 0;
-        font-size: 0.8rem;
+        margin: 0.22rem 0;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        color: #d8e0e5;
       }
 
       ul {
         list-style: none;
         padding: 0;
+        margin: 0;
 
         li {
-          margin: 0.5rem 0;
+          margin: 0.25rem 0;
 
           a {
-            color: #bbb;
+            color: #d8e0e5;
+            font-size: 0.78rem;
             text-decoration: none;
             transition: color 0.3s;
 
             &:hover {
-              color: #4caf50;
+              color: #ffffff;
             }
           }
         }
@@ -88,23 +97,31 @@ import Letras from '../assets/images/LetrasFooter.png'
       .logo-footer {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
+        gap: 0.35rem;
+        margin-bottom: 0.5rem;
         font-weight: bold;
         font-size: 1.2rem;
 
         img {
+          width: auto;
+        }
+
+        img:first-child {
           height: 30px;
+        }
+
+        img:last-child {
+          height: 40px;
         }
       }
 
       .copyright {
-        font-size: 0.9rem;
-        margin-top: 1rem;
+        font-size: 0.8rem;
+        margin-top: 0.35rem;
       }
 
       .derechos {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
       }
     }
   }
@@ -112,8 +129,12 @@ import Letras from '../assets/images/LetrasFooter.png'
 
 @media (max-width: 768px) {
   .footer {
+    padding: 0.7rem 1rem 0.45rem;
+
     .footer-container {
-      grid-template-columns: 1fr;
+      min-width: 900px;
+      grid-template-columns: 1.1fr 0.85fr 0.85fr 1.2fr;
+      gap: 0.7rem;
     }
   }
 }

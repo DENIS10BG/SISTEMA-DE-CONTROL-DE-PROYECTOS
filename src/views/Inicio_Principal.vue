@@ -32,8 +32,10 @@ import IngPro from '../assets/images/IngenieroProyetos.png'
 
 <style lang="scss" scoped>
 .inicio-principal {
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 // Hero Section
@@ -43,7 +45,9 @@ import IngPro from '../assets/images/IngenieroProyetos.png'
   justify-content: space-between;
   padding-left: 150px;
   background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
-  height: 65vh;
+  height: 70vh;
+  box-sizing: border-box;
+  overflow: auto;
 
   .hero-content {
     h1 {

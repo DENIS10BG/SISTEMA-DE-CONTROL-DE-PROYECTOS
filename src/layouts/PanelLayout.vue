@@ -23,22 +23,25 @@ import { RouterView } from 'vue-router'
 
 <style scoped lang="scss">
 .panel-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 10vh 80vh 10vh;
   background: #eceff3;
+  overflow: hidden;
 }
 
 .panel-body {
-  flex: 1;
   display: grid;
-  grid-template-columns: 230px 1fr;
-  min-height: 0;
+  grid-template-columns: 252px 1fr;
+  height: 80vh;
+  min-height: 80vh;
+  overflow: hidden;
 }
 
 .panel-content {
   min-width: 0;
   min-height: 0;
+  overflow: auto;
 }
 
 @media (max-width: 900px) {

@@ -3,6 +3,9 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import Escudo from '../../assets/images/Escudo.png'
 import Letras from '../../assets/images/Letras.png'
+import IconEngranaje from '@/components/icons/Iconsnavbar/Engranaje.svg'
+import IconVerPerfil from '@/components/icons/Iconsnavbar/Verperfil.svg'
+import IconCerrarSesion from '@/components/icons/Iconsnavbar/CerrarSesion.svg'
 
 const router = useRouter()
 const menuOpen = ref(false)
@@ -52,9 +55,8 @@ onBeforeUnmount(() => {
 
     <div class="profile-area">
       <RouterLink class="top-icon gear-link" to="/panel/ajustes" aria-label="Editar perfil">
-        ⚙
+        <img :src="IconEngranaje" alt="Configuración" />
       </RouterLink>
-      <button class="top-icon alert" type="button">!</button>
       <div class="profile-text">
         <strong>Maria Roquez</strong>
       </div>
@@ -63,13 +65,17 @@ onBeforeUnmount(() => {
 
         <div v-if="menuOpen" class="profile-menu">
           <button type="button" class="menu-option" @click="goToAjustes">
-            <span class="menu-icon profile">👤</span>
-            <span>Ver Perfil</span>
+            <span class="menu-icon profile">
+              <img :src="IconVerPerfil" alt="Ver perfil" />
+            </span>
+            <span class="menu-label">Ver Perfil</span>
           </button>
 
           <button type="button" class="menu-option" @click="logout">
-            <span class="menu-icon logout">✕</span>
-            <span>Cerrar Sesion</span>
+            <span class="menu-icon logout">
+              <img :src="IconCerrarSesion" alt="Cerrar sesión" />
+            </span>
+            <span class="menu-label">Cerrar Sesion</span>
           </button>
         </div>
       </div>
@@ -80,13 +86,18 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .panel-header {
   width: 100%;
-  min-height: 100px;
+  height: 10vh;
+  min-height: 10vh;
+  position: relative;
+  z-index: 40;
   background: #ffffff;
   border-bottom: 1px solid #e4e7eb;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.5rem;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .brand-slot {
@@ -119,6 +130,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  min-width: 0;
 }
 
 .top-icon {
@@ -133,9 +145,11 @@ onBeforeUnmount(() => {
   place-items: center;
   text-decoration: none;
 
-  &.alert {
-    color: #f05f73;
-    background: #fff1f4;
+  img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    filter: grayscale(1) brightness(0.72);
   }
 
   &.gear-link {
@@ -146,6 +160,7 @@ onBeforeUnmount(() => {
 .profile-text {
   color: #38416a;
   font-size: 1.1rem;
+  white-space: nowrap;
 }
 
 .avatar {
@@ -164,19 +179,20 @@ onBeforeUnmount(() => {
 
 .avatar-wrap {
   position: relative;
+  z-index: 60;
 }
 
 .profile-menu {
   position: absolute;
   right: 0;
   top: calc(100% + 0.5rem);
-  width: 190px;
+  width: 165px;
   background: #ffffff;
-  border: 1px solid #cfd77d;
-  border-radius: 16px;
-  box-shadow: 0 14px 28px rgba(35, 53, 87, 0.12);
-  padding: 0.5rem;
-  z-index: 20;
+  border: 1px solid #b8c86b;
+  border-radius: 14px;
+  box-shadow: 0 10px 20px rgba(35, 53, 87, 0.1);
+  padding: 0.35rem;
+  z-index: 120;
 }
 
 .menu-option {
@@ -185,11 +201,10 @@ onBeforeUnmount(() => {
   background: transparent;
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.8rem 0.7rem;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  color: #38416a;
+  gap: 0.65rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 10px;
+  color: #2e3650;
   text-align: left;
   cursor: pointer;
 
@@ -198,34 +213,76 @@ onBeforeUnmount(() => {
   }
 }
 
+.menu-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
 .menu-icon {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: #ffeab5;
-  color: #f2a400;
+  background: #fbeabc;
+
+  img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(75%) sepia(57%) saturate(1560%) hue-rotate(1deg)
+      brightness(102%) contrast(93%);
+  }
 
   &.logout {
-    background: #d9e1ff;
-    color: #3b63ff;
+    background: #dce3ff;
+
+    img {
+      filter: brightness(0) saturate(100%) invert(28%) sepia(97%) saturate(2867%) hue-rotate(222deg)
+        brightness(103%) contrast(103%);
+    }
   }
 }
 
 @media (max-width: 768px) {
   .panel-header {
-    flex-direction: column;
-    gap: 0.9rem;
-    align-items: flex-start;
+    padding: 0.4rem 0.8rem;
+    gap: 0.5rem;
   }
 
   .brand-slot {
-    min-width: 0;
-    width: 100%;
-    border-right: 0;
-    border-bottom: 1px solid #e4e7eb;
-    padding-bottom: 0.75rem;
+    min-width: 155px;
+    border-right: 1px solid #e4e7eb;
+    border-bottom: 0;
+    padding-right: 0.5rem;
+    padding-bottom: 0;
+  }
+
+  .brand-mark img:first-child {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-mark img:last-child {
+    width: 108px;
+  }
+
+  .top-icon {
+    width: 33px;
+    height: 33px;
+    font-size: 1rem;
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 0.8rem;
+  }
+
+  .profile-text {
+    font-size: 0.85rem;
   }
 }
 </style>

@@ -55,7 +55,7 @@ const modules = [
 
     <section class="profile-card">
       <div class="profile-info">
-        <div class="avatar large">MR</div>
+        <div class="avatar-photo">MR</div>
         <div>
           <strong>Maria Rocke Castillo</strong>
           <span>Administrador</span>
@@ -93,66 +93,80 @@ const modules = [
 
 <style scoped lang="scss">
 .section-shell {
-  padding: 1.8rem 1.5rem 1.2rem;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 1rem 1.25rem 0.9rem;
 }
 
 .section-head {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.7rem;
 }
 
 h1 {
   margin: 0;
   color: #35457f;
-  font-size: clamp(2rem, 2.8vw, 3rem);
+  font-size: clamp(1.8rem, 2.5vw, 2.7rem);
   font-weight: 800;
   text-align: center;
 }
 
 .profile-card {
-  width: min(100%, 540px);
+  width: min(100%, 940px);
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 1rem;
   align-items: center;
   background: #ffffff;
-  border-radius: 18px;
-  padding: 0.8rem 1.1rem;
+  border-radius: 24px;
+  padding: 0.45rem 1.15rem;
   box-shadow: 0 10px 24px rgba(35, 53, 87, 0.08);
-  margin: 0 auto 1rem;
+  margin: 0 auto 0.75rem;
 }
 
 .profile-info {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.7rem;
 
   strong,
   span {
     display: block;
   }
 
+  strong {
+    font-size: clamp(1.15rem, 1.4vw, 1.55rem);
+    font-weight: 600;
+    color: #2b3241;
+    line-height: 1.1;
+  }
+
   span {
     color: #8e9ac1;
-    font-size: 0.92rem;
+    font-size: 0.58rem;
+    font-weight: 600;
   }
 }
 
 .info-group {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
 
   span {
-    color: #8e9ac1;
-    font-size: 0.92rem;
+    color: #7e95cc;
+    font-size: 0.65rem;
+    font-weight: 500;
   }
 
   strong {
     color: #1f2937;
     font-weight: 700;
+    font-size: clamp(0.95rem, 1.2vw, 1.35rem);
+    line-height: 1.1;
   }
 
   .state {
@@ -162,7 +176,7 @@ h1 {
 
 .panel-title-row {
   width: min(100%, 1080px);
-  margin: 0 auto 1rem;
+  margin: 0 auto 0.7rem;
 
   h2 {
     margin: 0;
@@ -175,27 +189,22 @@ h1 {
 .module-grid {
   width: min(100%, 1080px);
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.1rem;
-  padding-bottom: 1.4rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  padding-bottom: 0.8rem;
   margin: 0 auto;
 }
 
-.avatar {
-  width: 44px;
-  height: 44px;
+.avatar-photo {
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #cfd6e7, #9ca9ca);
-  color: white;
+  background: radial-gradient(circle at 35% 28%, #f5dacd 0%, #d6b7a4 40%, #85aeb8 100%);
+  color: #ffffff;
   display: grid;
   place-items: center;
-  font-weight: 800;
-  font-size: 0.95rem;
-
-  &.large {
-    width: 48px;
-    height: 48px;
-  }
+  font-weight: 700;
+  font-size: 0.86rem;
 }
 
 @media (max-width: 1200px) {
@@ -208,11 +217,29 @@ h1 {
   .profile-card {
     grid-template-columns: 1fr;
     text-align: center;
-    width: min(100%, 420px);
+    width: min(100%, 560px);
+    gap: 0.7rem;
+    padding: 0.9rem 1rem;
   }
 
   .profile-info {
     justify-content: center;
+
+    strong {
+      font-size: 1.1rem;
+    }
+
+    span {
+      font-size: 0.68rem;
+    }
+  }
+
+  .info-group strong {
+    font-size: 1rem;
+  }
+
+  .info-group span {
+    font-size: 0.72rem;
   }
 }
 

@@ -52,22 +52,27 @@ const iniciarSesion = () => {
 
 <style lang="scss" scoped>
 .login-page {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .login-main {
-  flex: 1;
+  height: 70vh;
+  flex: 0 0 70vh;
   display: grid;
   place-items: center;
   background: linear-gradient(180deg, #ddd8d6 0%, #ece8e6 100%);
   padding: 2rem;
+  box-sizing: border-box;
+  overflow: auto;
 }
 
 .login-card {
   width: min(100%, 980px);
-  min-height: 560px;
+  height: min(100%, 560px);
+  min-height: 0;
   display: grid;
   grid-template-columns: 1.05fr 1fr;
   background: #ffffff;

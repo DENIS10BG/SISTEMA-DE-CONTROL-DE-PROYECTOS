@@ -6,10 +6,10 @@ import Letras from '../assets/images/Letras.png'
 <template>
   <header class="navbar">
     <div class="navbar-container">
-      <div class="logo">
+      <RouterLink class="logo" to="/">
         <img :src="Escudo" alt="Escudo de la unidad" />
         <img :src="Letras" alt="Letras de la unidad" />
-      </div>
+      </RouterLink>
       <nav class="nav-links">
         <a href="#inicio">Inicio</a>
         <a href="#sobre">Sobre Nosotros</a>
@@ -25,9 +25,13 @@ import Letras from '../assets/images/Letras.png'
   background-color: #f8f9fa;
   padding: 1rem 2rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 10vh;
+  box-sizing: border-box;
+  overflow: hidden;
 
   .navbar-container {
     max-width: 100%;
+    height: 100%;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -39,6 +43,8 @@ import Letras from '../assets/images/Letras.png'
       gap: 0.5rem;
       font-weight: bold;
       font-size: 1.5rem;
+      text-decoration: none;
+      color: inherit;
 
       img {
         height: 40px;
@@ -81,13 +87,28 @@ import Letras from '../assets/images/Letras.png'
 }
 
 @media (max-width: 768px) {
-  .navbar .navbar-container {
-    flex-direction: column;
-    gap: 1rem;
+  .navbar {
+    padding: 0.5rem 0.8rem;
+
+    .navbar-container {
+      gap: 0.6rem;
+    }
+
+    .logo img {
+      height: 28px;
+    }
 
     .nav-links {
-      flex-direction: column;
-      gap: 1rem;
+      gap: 0.8rem;
+
+      a {
+        font-size: 0.82rem;
+      }
+    }
+
+    .btn-login {
+      padding: 0.45rem 0.7rem;
+      font-size: 0.82rem;
     }
   }
 }
