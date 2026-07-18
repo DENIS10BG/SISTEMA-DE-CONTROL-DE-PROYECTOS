@@ -15,7 +15,7 @@ import Letras from '../assets/images/Letras.png'
         <a href="#sobre">Sobre Nosotros</a>
         <a href="#contacto">Contactanos</a>
       </nav>
-      <button class="btn-login" @click="navigateTo('/login')">Inicia Sesión</button>
+      <RouterLink class="btn-login" to="/login">Inicia Sesión</RouterLink>
     </div>
   </header>
 </template>
@@ -68,6 +68,10 @@ import Letras from '../assets/images/Letras.png'
       border-radius: 4px;
       cursor: pointer;
       transition: background-color 0.3s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
 
       &:hover {
         background-color: #45a049;

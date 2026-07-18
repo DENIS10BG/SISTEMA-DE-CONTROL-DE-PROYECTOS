@@ -2,12 +2,6 @@
 import Header_Principal from '@/layouts/Header_Principal.vue'
 import Footer_Principal from '@/layouts/Footer_Principal.vue'
 import IngPro from '../assets/images/IngenieroProyetos.png'
-
-/* const router = useRouter()
-
-const navigateTo = (path: string) => {
-  router.push(path)
-} */
 </script>
 
 <template>
@@ -24,7 +18,7 @@ const navigateTo = (path: string) => {
           Bienvenido. Este sistema está encargado de controlar y analizar la integridad documental
           de los proyectos de infraestructura finalizados.
         </p>
-        <button class="btn-primary" @click="navigateTo('/login')">Inicia Sesión</button>
+        <RouterLink class="btn-primary" to="/login">Inicia Sesión</RouterLink>
       </div>
       <div class="hero-image">
         <img :src="IngPro" alt="Ilustración del sistema" />
@@ -87,6 +81,10 @@ const navigateTo = (path: string) => {
       cursor: pointer;
       font-size: 1rem;
       transition: background-color 0.3s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
 
       &:hover {
         background-color: #45a049;
