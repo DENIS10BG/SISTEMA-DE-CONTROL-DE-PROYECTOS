@@ -72,38 +72,49 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
 
 <style scoped lang="scss">
 .settings-page {
-  padding: 1.8rem 1.5rem 1.2rem;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1.2rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow: auto;
 }
 
 .page-title {
-  margin: 0 0 1rem;
+  margin: 0;
+  text-align: left;
   color: #35457f;
-  font-size: clamp(2.2rem, 3vw, 3.2rem);
+  font-size: clamp(1.9rem, 2.4vw, 2.5rem);
+  line-height: 1.05;
   font-weight: 800;
 }
 
 .settings-card {
-  max-width: 920px;
+  width: min(100%, 980px);
+  box-sizing: border-box;
   margin: 0 auto;
   background: white;
   border-radius: 22px;
   border: 1px solid #a9a09a;
   box-shadow: 0 10px 24px rgba(35, 53, 87, 0.08);
-  padding: 1rem 1.2rem 1.4rem;
+  padding: 0.8rem 1.1rem 0.95rem;
+  overflow: visible;
 }
 
 .tabs {
   display: flex;
-  gap: 2rem;
+  gap: 2.6rem;
   border-bottom: 1px solid #eef1f6;
-  padding: 0 0 0.8rem 0.8rem;
+  padding: 0.08rem 0 0.62rem 0.45rem;
 }
 
 .tab {
   text-decoration: none;
   color: #9aabd7;
   font-weight: 600;
-  padding-bottom: 0.55rem;
+  font-size: 1.18rem;
+  padding-bottom: 0.64rem;
   position: relative;
 
   &.active {
@@ -124,16 +135,16 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
 
 .profile-body {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 1.2rem;
-  padding-top: 1.5rem;
+  grid-template-columns: 130px 1fr;
+  gap: 0.85rem;
+  padding-top: 0.8rem;
   align-items: start;
 }
 
 .avatar-wrap {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 98px;
+  height: 98px;
   margin-left: 0.4rem;
 
   img {
@@ -148,41 +159,41 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
   position: absolute;
   right: 4px;
   bottom: 8px;
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #2f3dff;
   color: white;
   display: grid;
   place-items: center;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   border: 3px solid white;
 }
 
 .fields-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem 1.2rem;
+  gap: 0.7rem 1rem;
 
   label {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.3rem;
   }
 
   span {
     color: #6c6f7a;
-    font-size: 0.95rem;
+    font-size: 0.86rem;
   }
 
   input {
     width: 100%;
     border: 1px solid #7046ff;
     border-radius: 12px;
-    padding: 0.85rem 1rem;
+    padding: 0.66rem 0.86rem;
     background: #ffffff;
     color: #465b92;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     outline: none;
   }
 }
@@ -190,7 +201,7 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
 .footer-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 1.2rem;
+  padding-top: 0.7rem;
 }
 
 .save-btn {
@@ -198,8 +209,8 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
   border-radius: 12px;
   background: #2f3dff;
   color: white;
-  min-width: 140px;
-  padding: 0.95rem 1.2rem;
+  min-width: 120px;
+  padding: 0.55rem 0.9rem;
   font-weight: 700;
 }
 

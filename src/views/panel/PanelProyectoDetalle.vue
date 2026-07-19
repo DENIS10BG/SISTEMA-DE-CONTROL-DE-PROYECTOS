@@ -1,22 +1,44 @@
 <script setup>
+import { RouterLink } from 'vue-router'
 import projectPreview from '../../assets/images/IngenieroProyetos.png'
+import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
+import IconCertificados from '@/components/icons/IconsProyect/Certificados.svg'
+import IconArchivosDestacados from '@/components/icons/IconsProyect/ArchivosDestacados.svg'
+import IconArchivosFijos from '@/components/icons/IconsProyect/ArchivosFijos.svg'
+import IconDescarga from '@/components/icons/IconsProyect/Descarga.svg'
+import IconPreguntas from '@/components/icons/IconsProyect/Preguntas.svg'
+import IconFiltro from '@/components/icons/IconsUser/FiltroUsuario.svg'
+import IconFlechaIzquierda from '@/components/icons/IconsUser/FlechaIzquierda.svg'
 </script>
 
 <template>
   <section class="detail-page">
     <div class="detail-head">
       <h1>PROYECTOS</h1>
-      <input class="search" placeholder="Search for anything..." />
+      <div class="search-shell">
+        <span class="search-icon" aria-hidden="true"></span>
+        <input class="search" placeholder="Search for anything..." />
+      </div>
       <div class="filters">
-        <button class="chip">Lugar</button>
-        <button class="chip">Año</button>
+        <button class="chip">
+          <img :src="IconFiltro" alt="" aria-hidden="true" />
+          <span>Lugar</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+        <button class="chip">
+          <img :src="IconFiltro" alt="" aria-hidden="true" />
+          <span>Año</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
       </div>
     </div>
 
     <article class="project-summary">
       <div class="project-hero">
-        <div class="folder">▣</div>
-        <div>
+        <div class="folder">
+          <img :src="IconCarpeta" alt="Carpeta del proyecto" />
+        </div>
+        <div class="project-text">
           <p class="label">Proyecto</p>
           <strong>Construccion Tinglado RSAT-1 BUCH-ORURO</strong>
         </div>
@@ -32,7 +54,9 @@ import projectPreview from '../../assets/images/IngenieroProyetos.png'
           <p class="label blue">Año</p>
           <strong>2019</strong>
         </div>
-        <button class="details-btn">Mas detalles</button>
+        <RouterLink class="details-btn" to="/panel/proyectos" aria-label="Volver a proyectos">
+          <img :src="IconFlechaIzquierda" alt="" aria-hidden="true" />
+        </RouterLink>
       </div>
 
       <h2>Construcción Tinglado RSAT-1 BUCH-ORURO</h2>
@@ -58,26 +82,47 @@ import projectPreview from '../../assets/images/IngenieroProyetos.png'
           <div class="action-row">
             <button class="action-box pink">
               <span class="action-title">Ver</span>
-              <span class="action-icon">◔</span>
+              <span class="action-icon">
+                <img :src="IconCarpeta" alt="Ver proyecto" />
+              </span>
               <small>Ve el proyecto Completo</small>
             </button>
             <button class="action-box yellow">
               <span class="action-title">Descargar</span>
-              <span class="action-icon">↓</span>
+              <span class="action-icon">
+                <img :src="IconDescarga" alt="Descargar proyecto" />
+              </span>
               <small>Descarga el Proyecto</small>
             </button>
             <button class="action-box green">
               <span class="action-title">Agente</span>
-              <span class="action-icon">▢</span>
+              <span class="action-icon">
+                <img :src="IconPreguntas" alt="Agente de preguntas" />
+              </span>
               <small>Agente de Preguntas</small>
             </button>
           </div>
         </div>
 
         <div class="side-stack">
-          <button class="side-card"><span class="side-icon">⊚</span>Certificados de Obras</button>
-          <button class="side-card"><span class="side-icon">⊚</span>Archivos Destacados</button>
-          <button class="side-card"><span class="side-icon">⊚</span>Archivos Fijos</button>
+          <button class="side-card">
+            <span class="side-icon">
+              <img :src="IconCertificados" alt="Certificados de obras" />
+            </span>
+            Certificados de Obras
+          </button>
+          <button class="side-card">
+            <span class="side-icon">
+              <img :src="IconArchivosDestacados" alt="Archivos destacados" />
+            </span>
+            Archivos Destacados
+          </button>
+          <button class="side-card">
+            <span class="side-icon">
+              <img :src="IconArchivosFijos" alt="Archivos fijos" />
+            </span>
+            Archivos Fijos
+          </button>
           <div class="year-box">
             <span>2019</span>
             <span>ORURO</span>
@@ -91,13 +136,13 @@ import projectPreview from '../../assets/images/IngenieroProyetos.png'
 <style scoped lang="scss">
 .detail-page {
   min-height: 100%;
-  padding: 1.5rem 1.5rem 1.2rem;
+  padding: 1.25rem 1.25rem 1rem;
   background: #eef1f6;
 }
 
 .detail-head {
   display: grid;
-  grid-template-columns: auto minmax(280px, 1fr) auto;
+  grid-template-columns: auto minmax(320px, 1fr) auto;
   gap: 1rem;
   align-items: center;
   margin-bottom: 1rem;
@@ -106,61 +151,130 @@ import projectPreview from '../../assets/images/IngenieroProyetos.png'
 h1 {
   margin: 0;
   color: #35457f;
-  font-size: clamp(2rem, 2.9vw, 3rem);
+  font-size: clamp(2rem, 2.8vw, 2.8rem);
   font-weight: 800;
+  line-height: 1;
 }
 
-.search,
+.search-shell,
 .chip,
 .details-btn {
   border: 1px solid #c8ccda;
-  border-radius: 10px;
+  border-radius: 12px;
   background: white;
-  padding: 0.75rem 1rem;
+}
+
+.search-shell {
+  min-height: 48px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+  padding: 0 0.9rem 0 1rem;
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(35, 53, 87, 0.05);
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #96a0b9;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.search-icon::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 2px;
+  background: #96a0b9;
+  border-radius: 999px;
+  right: -7px;
+  bottom: -3px;
+  transform: rotate(45deg);
+  transform-origin: center;
 }
 
 .search {
-  max-width: 360px;
+  border: 0;
+  outline: 0;
   width: 100%;
-  justify-self: center;
-  border-radius: 8px;
+  min-width: 0;
+  color: #4c5163;
+  font-size: 0.95rem;
 }
 
 .filters {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .chip {
-  min-width: 96px;
+  min-width: 132px;
+  min-height: 48px;
   color: #6d7285;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0 0.9rem;
+  box-shadow: 0 6px 18px rgba(35, 53, 87, 0.05);
+}
+
+.chip img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  opacity: 0.8;
+}
+
+.chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid #8d93a8;
+  border-bottom: 2px solid #8d93a8;
+  transform: rotate(45deg);
+  margin-top: -2px;
+  flex: 0 0 auto;
 }
 
 .project-summary {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .project-hero {
   display: grid;
-  grid-template-columns: 56px 1.55fr 0.75fr 0.9fr 0.55fr auto;
-  gap: 1rem;
+  grid-template-columns: 48px minmax(0, 1.28fr) 0.56fr 0.68fr 0.38fr 54px;
+  gap: 0.75rem;
   align-items: center;
   background: white;
   border-radius: 18px;
-  padding: 0.9rem 1rem;
+  padding: 0.64rem 0.9rem;
   box-shadow: 0 12px 24px rgba(35, 53, 87, 0.08);
 }
 
 .label {
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.18rem;
   color: #f1a0bb;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .label.blue {
   color: #7894d6;
+}
+
+.project-text strong {
+  display: block;
+  max-width: 250px;
+  font-size: 0.89rem;
+  line-height: 1.08;
+  font-weight: 600;
+  color: #222;
 }
 
 .folder {
@@ -170,8 +284,12 @@ h1 {
   background: #ffd98f;
   display: grid;
   place-items: center;
-  color: #2b2b2b;
-  font-size: 1rem;
+
+  img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
 }
 
 .details-btn {
@@ -179,21 +297,33 @@ h1 {
   color: white;
   border-color: transparent;
   border-radius: 999px;
-  padding-inline: 1.2rem;
-  font-weight: 700;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  justify-self: end;
+
+  img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
 }
 
 h2 {
   margin: 0;
-  font-size: clamp(2.4rem, 3.2vw, 3.4rem);
+  font-size: clamp(2rem, 2.8vw, 3rem);
   color: #222;
   font-weight: 500;
+  line-height: 1.05;
 }
 
 .detail-grid {
   display: grid;
-  grid-template-columns: 250px 1fr 250px;
-  gap: 1rem;
+  grid-template-columns: 230px minmax(0, 1fr) 230px;
+  gap: 0.9rem;
   align-items: start;
 }
 
@@ -213,10 +343,10 @@ h2 {
 }
 
 .preview-card {
-  padding: 0.9rem;
+  padding: 0.8rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.65rem;
   align-items: center;
 }
 
@@ -231,14 +361,14 @@ h2 {
 
 .mock-image {
   width: 100%;
-  height: 280px;
+  height: 198px;
   border-radius: 8px;
   object-fit: cover;
   background: linear-gradient(180deg, #d55a40 0%, #b23d2b 100%);
 }
 
 .description-card {
-  padding: 1rem 1.1rem 1.1rem;
+  padding: 0.9rem 1rem 1rem;
 }
 
 .description-card h3 {
@@ -257,19 +387,26 @@ h2 {
 .action-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  gap: 0.7rem;
 }
 
 .action-box {
-  min-height: 118px;
+  min-height: 104px;
+
+  img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
   font-weight: 700;
-  border: 2px solid #3f3f4d;
+  border: 1.5px solid #3f3f4d;
   border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 0.8rem 0.85rem;
+  padding: 0.72rem 0.8rem;
   text-align: left;
   color: #31365f;
 }
@@ -285,19 +422,18 @@ h2 {
 }
 
 .action-title {
-  font-size: 1.5rem;
+  font-size: 1.18rem;
   line-height: 1;
 }
 
 .action-icon {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   background: #ff6f8d;
   color: white;
   display: grid;
   place-items: center;
-  font-size: 1.45rem;
 }
 
 .yellow .action-icon {
@@ -309,51 +445,58 @@ h2 {
 }
 
 .action-box small {
-  max-width: 8rem;
+  max-width: 7rem;
   color: #4d5166;
   font-weight: 600;
+  font-size: 0.8rem;
 }
 
 .side-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.7rem;
 }
 
 .side-card,
 .year-box {
-  min-height: 62px;
+  min-height: 54px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   text-align: left;
   font-weight: 700;
-  padding: 0.8rem 1rem;
+  padding: 0.65rem 0.85rem;
   border: 0;
   color: #33345a;
 }
 
 .side-card {
   gap: 0.8rem;
-  font-size: 1.02rem;
+  font-size: 0.94rem;
 }
 
 .side-icon {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 10px;
   background: #ffd7e1;
   color: #f48bb1;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
+
+  img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+  }
 }
 
 .year-box {
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: center;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   gap: 0;
 }
 
@@ -367,6 +510,10 @@ h2 {
   .search {
     max-width: none;
     justify-self: stretch;
+  }
+
+  .project-text strong {
+    max-width: none;
   }
 }
 

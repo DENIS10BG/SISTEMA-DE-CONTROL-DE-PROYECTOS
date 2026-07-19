@@ -6,6 +6,7 @@ import PanelLayout from '../layouts/PanelLayout.vue'
 import PanelUsuarios from '../views/panel/PanelUsuarios.vue'
 import PanelUsuarioVer from '../views/panel/PanelUsuarioVer.vue'
 import PanelUsuarioEditar from '../views/panel/PanelUsuarioEditar.vue'
+import PanelUsuarioNuevo from '../views/panel/PanelUsuarioNuevo.vue'
 import PanelProyectos from '../views/panel/PanelProyectos.vue'
 import PanelProcesamiento from '../views/panel/PanelProcesamiento.vue'
 import PanelReportes from '../views/panel/PanelReportes.vue'
@@ -58,6 +59,11 @@ const router = createRouter({
           path: 'usuarios/editar',
           name: 'panel-usuario-editar',
           component: PanelUsuarioEditar,
+        },
+        {
+          path: 'usuarios/nuevo',
+          name: 'panel-usuario-nuevo',
+          component: PanelUsuarioNuevo,
         },
         {
           path: 'proyectos',
