@@ -15,6 +15,7 @@ import PanelAsistente from '../views/panel/PanelAsistente.vue'
 import PanelPerfil from '../views/panel/PanelPerfil.vue'
 import PanelAjustes from '../views/panel/PanelAjustes.vue'
 import PanelProyectoDetalle from '../views/panel/PanelProyectoDetalle.vue'
+import PanelCaoDetalle from '../views/panel/PanelCaoDetalle.vue'
 import PanelAlertaDetalle from '../views/panel/PanelAlertaDetalle.vue'
 import PanelAsistenteDetalle from '../views/panel/PanelAsistenteDetalle.vue'
 import PanelProcesamientoVariante from '../views/panel/PanelProcesamientoVariante.vue'
@@ -109,6 +110,11 @@ const router = createRouter({
           path: 'proyectos/detalle',
           name: 'panel-proyecto-detalle',
           component: PanelProyectoDetalle,
+        },
+        {
+          path: 'proyectos/cao/:id',
+          name: 'panel-cao-detalle',
+          component: PanelCaoDetalle,
         },
         {
           path: 'alertas/detalle',

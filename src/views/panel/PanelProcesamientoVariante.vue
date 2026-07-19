@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
 
 const route = useRoute()
 const mode = computed(() => {
@@ -9,6 +10,133 @@ const mode = computed(() => {
   if (route.path.endsWith('/buscar')) return 'buscar'
   return 'principal'
 })
+
+const searchProjects = [
+  {
+    id: 1,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    Archivo: 'Proyecto',
+    codigo: '789945661-0',
+    anio: '2019',
+    processed: true,
+  },
+  {
+    id: 2,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    codigo: '789945661-0',
+    Archivo: 'Proyecto',
+    anio: '2019',
+    processed: false,
+  },
+  {
+    id: 3,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    codigo: '789945661-0',
+    Archivo: 'Proyecto',
+    anio: '2019',
+    processed: true,
+  },
+  {
+    id: 4,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    codigo: '789945661-0',
+    Archivo: 'Proyecto',
+    anio: '2019',
+    processed: false,
+  },
+  {
+    id: 5,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'La Paz',
+    codigo: '789945661-1',
+    Archivo: 'Proyecto',
+    anio: '2020',
+    processed: true,
+  },
+  {
+    id: 6,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Cochabamba',
+    codigo: '789945661-2',
+    Archivo: 'Proyecto',
+    anio: '2021',
+    processed: false,
+  },
+  {
+    id: 7,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Tarija',
+    codigo: '789945661-3',
+    Archivo: 'Proyecto',
+    anio: '2022',
+    processed: true,
+  },
+  {
+    id: 8,
+    proyecto: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Santa Cruz',
+    codigo: '789945661-4',
+    Archivo: 'Proyecto',
+    anio: '2023',
+    processed: false,
+  },
+]
+
+const selectedAnio = ref('')
+const selectedLugar = ref('')
+const selectedEstado = ref('')
+const searchText = ref('')
+
+const yearsOptions = computed(() => [...new Set(searchProjects.map((project) => project.anio))])
+const lugarOptions = computed(() => [...new Set(searchProjects.map((project) => project.lugar))])
+
+const filteredProjects = computed(() => {
+  return searchProjects.filter((project) => {
+    const matchesAnio = !selectedAnio.value || project.anio === selectedAnio.value
+    const matchesLugar = !selectedLugar.value || project.lugar === selectedLugar.value
+    const projectEstado = project.processed ? 'procesado' : 'no-procesado'
+    const matchesEstado = !selectedEstado.value || projectEstado === selectedEstado.value
+    const query = searchText.value.trim().toLowerCase()
+    const matchesSearch =
+      !query ||
+      project.proyecto.toLowerCase().includes(query) ||
+      project.codigo.toLowerCase().includes(query) ||
+      project.Archivo.toLowerCase().includes(query)
+
+    return matchesAnio && matchesLugar && matchesEstado && matchesSearch
+  })
+})
+
+const currentPage = ref(1)
+const rowsPerPage = 4
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredProjects.value.length / rowsPerPage)),
+)
+
+const paginatedProjects = computed(() => {
+  const start = (currentPage.value - 1) * rowsPerPage
+  return filteredProjects.value.slice(start, start + rowsPerPage)
+})
+
+const canGoPrev = computed(() => currentPage.value > 1)
+const canGoNext = computed(() => currentPage.value < totalPages.value)
+
+const goPrevPage = () => {
+  if (canGoPrev.value) currentPage.value -= 1
+}
+
+const goNextPage = () => {
+  if (canGoNext.value) currentPage.value += 1
+}
+
+const resetPage = () => {
+  currentPage.value = 1
+}
 </script>
 
 <template>
@@ -39,27 +167,62 @@ const mode = computed(() => {
       </RouterLink>
     </div>
 
+    <div v-if="mode === 'buscar'" class="search-controls">
+      <div class="control-group">
+        <select v-model="selectedAnio" class="control-select" @change="resetPage">
+          <option value="">Año</option>
+          <option v-for="anio in yearsOptions" :key="anio" :value="anio">{{ anio }}</option>
+        </select>
+        <select v-model="selectedLugar" class="control-select" @change="resetPage">
+          <option value="">Lugar</option>
+          <option v-for="lugar in lugarOptions" :key="lugar" :value="lugar">{{ lugar }}</option>
+        </select>
+        <select v-model="selectedEstado" class="control-select" @change="resetPage">
+          <option value="">Estado</option>
+          <option value="procesado">Procesado</option>
+          <option value="no-procesado">No procesado</option>
+        </select>
+      </div>
+
+      <input
+        v-model="searchText"
+        class="search-input"
+        placeholder="Buscar archivo..."
+        @input="resetPage"
+      />
+    </div>
+
     <div v-if="mode === 'buscar'" class="list-card">
-      <article v-for="index in 4" :key="index" class="project-row">
-        <div class="folder">▣</div>
+      <article v-for="project in paginatedProjects" :key="project.id" class="project-row">
+        <div class="folder">
+          <img :src="IconCarpeta" alt="Carpeta" />
+        </div>
         <div>
           <p class="label">Proyecto</p>
-          <strong>Construccion Tinglado RSAT-1 BUCH-ORURO</strong>
+          <strong>{{ project.proyecto }}</strong>
         </div>
         <div>
           <p class="label">Lugar</p>
-          <strong>Oruro</strong>
+          <strong>{{ project.lugar }}</strong>
         </div>
         <div>
-          <p class="label">Codigo identificador</p>
-          <strong>789945661-0</strong>
+          <p class="label">Archivo</p>
+          <strong>{{ project.Archivo }}</strong>
         </div>
         <div>
           <p class="label">Año</p>
-          <strong>2019</strong>
+          <strong>{{ project.anio }}</strong>
         </div>
-        <button class="more-btn">Mas detalles</button>
+        <button class="more-btn" :class="project.processed ? 'is-processed' : 'is-not-processed'">
+          {{ project.processed ? 'Procesado' : 'No procesado' }}
+        </button>
       </article>
+
+      <div class="pagination-controls">
+        <button class="page-arrow" :disabled="!canGoPrev" @click="goPrevPage">←</button>
+        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="page-arrow" :disabled="!canGoNext" @click="goNextPage">→</button>
+      </div>
     </div>
 
     <div v-else class="content-grid">
@@ -88,13 +251,13 @@ const mode = computed(() => {
 
 <style scoped lang="scss">
 .section-shell {
-  padding: 1.8rem 1.5rem 1.2rem;
+  padding: 0.5rem 1.5rem 1rem;
 }
 
 h1 {
-  margin: 0 0 1.3rem;
+  margin: 0 0 0.4rem;
   color: #35457f;
-  font-size: clamp(2rem, 2.8vw, 2.8rem);
+  font-size: clamp(1rem, 2.5vw, 2.8rem);
   font-weight: 800;
 }
 
@@ -127,10 +290,71 @@ h1 {
   gap: 1.5rem;
 }
 
+.search-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.control-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(130px, 1fr));
+  gap: 0.8rem;
+  flex: 1;
+}
+
+.control-select,
+.search-input {
+  min-height: 44px;
+  border: 1px solid #c8ccda;
+  border-radius: 12px;
+  background: white;
+  padding: 0 0.9rem;
+  color: #5f667c;
+  font-size: 0.95rem;
+}
+
+.search-input {
+  width: min(320px, 100%);
+}
+
 .list-card {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.page-arrow {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #c8ccda;
+  border-radius: 8px;
+  background: white;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #566088;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.page-indicator {
+  color: #69739d;
+  font-weight: 700;
+  min-width: 58px;
+  text-align: center;
 }
 
 .project-row {
@@ -160,12 +384,21 @@ h1 {
 }
 
 .more-btn {
-  background: #63d24d;
   color: white;
   border-color: transparent;
   border: 0;
   border-radius: 10px;
   padding: 0.75rem 1rem;
+  font-weight: 700;
+}
+
+.more-btn.is-processed {
+  background: #63d24d;
+  width: 120px;
+}
+
+.more-btn.is-not-processed {
+  background: #d33a3a;
 }
 
 .drop-zone {
@@ -243,6 +476,19 @@ h1 {
   .two-cols,
   .bottom-row {
     grid-template-columns: 1fr;
+  }
+
+  .search-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .control-group {
+    grid-template-columns: 1fr;
+  }
+
+  .search-input {
+    width: 100%;
   }
 
   .project-row {

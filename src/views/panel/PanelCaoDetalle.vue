@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import projectPreview from '../../assets/images/IngenieroProyetos.png'
 import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
 import IconCertificados from '@/components/icons/IconsProyect/Certificados.svg'
@@ -28,16 +28,16 @@ const anios = Array.from({ length: 17 }, (_, index) => String(2026 - index))
 const selectedLugar = ref('')
 const selectedAnio = ref('')
 
-const certificatesOpen = ref(false)
+const certificatesOpen = ref(true)
 const certificateItems = Array.from({ length: 7 }, (_, index) => index + 1)
+const route = useRoute()
 
-const toggleCertificates = () => {
-  certificatesOpen.value = !certificatesOpen.value
-}
+const selectedCaoId = computed(() => {
+  const parsed = Number(route.params.id)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+})
 
-const goBackCertificate = () => {
-  certificatesOpen.value = false
-}
+const toggleCertificates = () => {}
 </script>
 
 <template>
@@ -74,16 +74,16 @@ const goBackCertificate = () => {
           <img :src="IconCarpeta" alt="Carpeta del proyecto" />
         </div>
         <div class="project-text">
-          <p class="label">Proyecto</p>
-          <strong>Construccion Tinglado RSAT-1 BUCH-ORURO</strong>
+          <p class="label">CAO</p>
+          <strong>Certificado de Avance de Obras {{ selectedCaoId }}</strong>
         </div>
         <div>
           <p class="label blue">Lugar</p>
           <strong>Oruro</strong>
         </div>
         <div>
-          <p class="label blue">Archivo</p>
-          <strong>Proyecto</strong>
+          <p class="label blue">CAO</p>
+          <strong>Certificado {{ selectedCaoId }}</strong>
         </div>
         <div>
           <p class="label blue">Año</p>
@@ -94,13 +94,13 @@ const goBackCertificate = () => {
         </RouterLink>
       </div>
 
-      <h2>Construcción Tinglado RSAT-1 BUCH-ORURO</h2>
+      <h2>Certificado de Avance de Obras {{ selectedCaoId }}</h2>
 
       <div class="detail-grid">
         <div class="preview-card">
-          <span class="tag">Proyecto</span>
+          <span class="tag">CAO</span>
           <img class="mock-image" :src="projectPreview" alt="Documento del proyecto" />
-          <small>3 CAO</small>
+          <small>CAO {{ selectedCaoId }}</small>
         </div>
 
         <div class="center-stack">
@@ -142,7 +142,7 @@ const goBackCertificate = () => {
         <div class="side-stack">
           <div class="certificate-panel">
             <div class="certificate-root">
-              <button class="side-card side-card-expand" @click="toggleCertificates">
+              <button class="side-card side-card-expand">
                 <span class="side-icon">
                   <img :src="IconCertificados" alt="Certificados de obras" />
                 </span>
@@ -173,10 +173,9 @@ const goBackCertificate = () => {
             </div>
 
             <div v-if="certificatesOpen" class="certificate-overlay">
-              <button class="certificate-back certificate-back-root" @click="goBackCertificate">
-                <span class="side-card-arrow left" aria-hidden="true"></span>
+              <div class="certificate-back certificate-back-root">
                 <span>Certificados de Avances de Obras</span>
-              </button>
+              </div>
 
               <div class="certificate-scroll certificate-list">
                 <RouterLink
@@ -184,6 +183,7 @@ const goBackCertificate = () => {
                   :key="item"
                   :to="`/panel/proyectos/cao/${item}`"
                   class="certificate-line certificate-link"
+                  :class="{ active: item === selectedCaoId }"
                 >
                   <span class="certificate-folder">
                     <img :src="IconCarpeta" alt="Carpeta" />
@@ -748,6 +748,15 @@ h2 {
   border: 0;
   width: 100%;
   text-align: left;
+}
+
+.certificate-link {
+  text-decoration: none;
+}
+
+.certificate-line.active {
+  background: #ffeef5;
+  outline: 1px solid #f4d9e5;
 }
 
 .certificate-line.detail-line {

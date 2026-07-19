@@ -1,9 +1,100 @@
 <script setup>
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
 import IconFiltro from '@/components/icons/IconsUser/FiltroUsuario.svg'
+import IconFlechaIzquierda from '@/components/icons/IconsUser/FlechaIzquierda.svg'
+import IconFlechaDerecha from '@/components/icons/IconsUser/FlechaDerecha.svg'
 
-const projects = [1, 2, 3, 4, 5]
+const projects = [
+  {
+    id: 1,
+    nombre: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    archivo: 'Proyecto',
+    anio: '2019',
+  },
+  {
+    id: 2,
+    nombre: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    archivo: 'Proyecto',
+    anio: '2019',
+  },
+  {
+    id: 3,
+    nombre: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    archivo: 'Proyecto',
+    anio: '2019',
+  },
+  {
+    id: 4,
+    nombre: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    archivo: 'Proyecto',
+    anio: '2019',
+  },
+  {
+    id: 5,
+    nombre: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    archivo: 'Proyecto',
+    anio: '2019',
+  },
+  {
+    id: 6,
+    nombre: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    archivo: 'Proyecto',
+    anio: '2019',
+  },
+  {
+    id: 7,
+    nombre: 'Construccion Tinglado RSAT-1 BUCH-ORURO',
+    lugar: 'Oruro',
+    archivo: 'Proyecto',
+    anio: '2019',
+  },
+]
+
+const lugares = [
+  'La Paz',
+  'Oruro',
+  'Potosi',
+  'Cochabamba',
+  'Tarija',
+  'Beni',
+  'Santa Cruz',
+  'Pando',
+  'Chuquisaca',
+]
+
+const anios = Array.from({ length: 17 }, (_, index) => String(2026 - index))
+
+const selectedLugar = ref('')
+const selectedAnio = ref('')
+
+const rowsPerPage = 6
+const currentPage = ref(1)
+
+const totalPages = computed(() => Math.ceil(projects.length / rowsPerPage))
+
+const paginatedProjects = computed(() => {
+  const start = (currentPage.value - 1) * rowsPerPage
+  return projects.slice(start, start + rowsPerPage)
+})
+
+const canGoPrev = computed(() => currentPage.value > 1)
+const canGoNext = computed(() => currentPage.value < totalPages.value)
+
+const goPrevPage = () => {
+  if (canGoPrev.value) currentPage.value -= 1
+}
+
+const goNextPage = () => {
+  if (canGoNext.value) currentPage.value += 1
+}
 </script>
 
 <template>
@@ -15,42 +106,57 @@ const projects = [1, 2, 3, 4, 5]
         <input class="search" placeholder="Search for anything..." />
       </div>
       <div class="filters">
-        <button class="action-btn">
+        <div class="action-btn select-btn">
           <img :src="IconFiltro" alt="" aria-hidden="true" />
-          <span>Lugar</span>
+          <select v-model="selectedLugar" class="filter-select" aria-label="Filtrar por lugar">
+            <option value="">Lugar</option>
+            <option v-for="lugar in lugares" :key="lugar" :value="lugar">{{ lugar }}</option>
+          </select>
           <span class="chevron" aria-hidden="true"></span>
-        </button>
-        <button class="action-btn">
+        </div>
+        <div class="action-btn select-btn">
           <img :src="IconFiltro" alt="" aria-hidden="true" />
-          <span>Año</span>
+          <select v-model="selectedAnio" class="filter-select" aria-label="Filtrar por año">
+            <option value="">Año</option>
+            <option v-for="anio in anios" :key="anio" :value="anio">{{ anio }}</option>
+          </select>
           <span class="chevron" aria-hidden="true"></span>
-        </button>
+        </div>
       </div>
     </div>
 
     <div class="list-card">
-      <article v-for="index in projects" :key="index" class="project-row">
+      <article v-for="project in paginatedProjects" :key="project.id" class="project-row">
         <div class="folder">
           <img :src="IconCarpeta" alt="Carpeta" />
         </div>
-        <div>
+        <div class="project-text">
           <p class="label">Proyecto</p>
-          <strong>Construccion Tinglado RSAT-1 BUCH-ORURO</strong>
+          <strong>{{ project.nombre }}</strong>
         </div>
         <div>
           <p class="label">Lugar</p>
-          <strong>Oruro</strong>
+          <strong>{{ project.lugar }}</strong>
         </div>
         <div>
           <p class="label">Archivo</p>
-          <strong>Proyecto</strong>
+          <strong>{{ project.archivo }}</strong>
         </div>
         <div>
           <p class="label">Año</p>
-          <strong>2019</strong>
+          <strong>{{ project.anio }}</strong>
         </div>
         <RouterLink class="more-btn" to="/panel/proyectos/detalle">Mas detalles</RouterLink>
       </article>
+    </div>
+
+    <div class="pagination-controls">
+      <button class="page-arrow" :disabled="!canGoPrev" @click="goPrevPage">
+        <img :src="IconFlechaIzquierda" alt="Página anterior" />
+      </button>
+      <button class="page-arrow" :disabled="!canGoNext" @click="goNextPage">
+        <img :src="IconFlechaDerecha" alt="Página siguiente" />
+      </button>
     </div>
   </section>
 </template>
@@ -131,7 +237,7 @@ h1 {
 }
 
 .action-btn {
-  min-width: 132px;
+  min-width: 176px;
   min-height: 48px;
   display: inline-flex;
   align-items: center;
@@ -141,6 +247,22 @@ h1 {
   color: #7a7f91;
   font-size: 0.95rem;
   box-shadow: 0 6px 18px rgba(35, 53, 87, 0.05);
+}
+
+.select-btn {
+  position: relative;
+}
+
+.filter-select {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #7a7f91;
+  font-size: 0.95rem;
+  width: 100%;
+  min-width: 0;
+  outline: none;
+  padding-right: 0.9rem;
 }
 
 .action-btn img {
@@ -158,12 +280,41 @@ h1 {
   transform: rotate(45deg);
   margin-top: -2px;
   flex: 0 0 auto;
+  pointer-events: none;
 }
 
 .list-card {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+}
+
+.pagination-controls {
+  margin-top: 0.55rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.page-arrow {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #c8ccda;
+  background: white;
+  display: grid;
+  place-items: center;
+
+  img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 }
 
 .project-row {

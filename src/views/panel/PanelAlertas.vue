@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-
+import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
 const alerts = [1, 2, 3, 4, 5]
 </script>
 
@@ -10,7 +10,7 @@ const alerts = [1, 2, 3, 4, 5]
 
     <div class="list-card">
       <article v-for="index in alerts" :key="index" class="alert-row">
-        <div class="folder">▣</div>
+        <div class="folder"><img :src="IconCarpeta" alt="Carpeta" /></div>
         <div>
           <p class="label">Proyecto</p>
           <strong>Construccion Tinglado RSAT-1 BUCH-ORURO</strong>

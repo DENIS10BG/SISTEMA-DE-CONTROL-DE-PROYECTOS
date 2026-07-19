@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-
+import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
 const assistants = [1, 2, 3, 4]
 </script>
 
@@ -18,7 +18,7 @@ const assistants = [1, 2, 3, 4]
 
     <div class="list-card">
       <article v-for="index in assistants" :key="index" class="project-row">
-        <div class="folder">▣</div>
+        <div class="folder"><img :src="IconCarpeta" alt="Carpeta" /></div>
         <div>
           <p class="label">Proyecto</p>
           <strong>Construccion Tinglado RSAT-1 BUCH-ORURO</strong>
@@ -28,8 +28,8 @@ const assistants = [1, 2, 3, 4]
           <strong>Oruro</strong>
         </div>
         <div>
-          <p class="label">Codigo identificador</p>
-          <strong>789945661-0</strong>
+          <p class="label">Archivo</p>
+          <strong>Proyecto</strong>
         </div>
         <div>
           <p class="label">Año</p>
