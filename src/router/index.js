@@ -8,7 +8,6 @@ import PanelUsuarioVer from '../views/panel/PanelUsuarioVer.vue'
 import PanelUsuarioEditar from '../views/panel/PanelUsuarioEditar.vue'
 import PanelUsuarioNuevo from '../views/panel/PanelUsuarioNuevo.vue'
 import PanelProyectos from '../views/panel/PanelProyectos.vue'
-import PanelProcesamiento from '../views/panel/PanelProcesamiento.vue'
 import PanelReportes from '../views/panel/PanelReportes.vue'
 import PanelAlertas from '../views/panel/PanelAlertas.vue'
 import PanelAsistente from '../views/panel/PanelAsistente.vue'
@@ -74,7 +73,7 @@ const router = createRouter({
         {
           path: 'procesamiento',
           name: 'panel-procesamiento',
-          component: PanelProcesamiento,
+          component: PanelProcesamientoVariante,
         },
         {
           path: 'procesamiento/subir',

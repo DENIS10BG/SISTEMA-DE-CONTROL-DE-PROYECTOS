@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
+import IconSubirArchivo from '@/components/icons/IconsProyect/subirArchivo.svg'
 
 const route = useRoute()
 const mode = computed(() => {
@@ -226,7 +227,10 @@ const resetPage = () => {
     </div>
 
     <div v-else class="content-grid">
-      <div class="drop-zone">↑</div>
+      <div class="drop-zone">
+        <img :src="IconSubirArchivo" alt="Subir archivo" class="drop-icon" />
+        <span>SUBIR ARCHIVO</span>
+      </div>
       <div class="form-grid">
         <label>
           <span>TITULO</span>
@@ -408,7 +412,17 @@ h1 {
   background: #f0dfb2;
   display: grid;
   place-items: center;
-  font-size: 2rem;
+  gap: 0rem;
+  span {
+    color: #7c6b5f;
+    font-weight: 700;
+    font-size: 3rem;
+  }
+}
+
+.drop-icon {
+  width: min(160px, 52vw);
+  height: auto;
 }
 
 .note-card,
