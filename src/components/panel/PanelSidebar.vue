@@ -20,7 +20,10 @@ const menuItems = [
 
 const route = useRoute()
 
-const isActive = (to) => route.path === to
+const isActive = (to) => {
+  if (route.path === to) return true
+  return route.path.startsWith(`${to}/`)
+}
 </script>
 
 <template>
