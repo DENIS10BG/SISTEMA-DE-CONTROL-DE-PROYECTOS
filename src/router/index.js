@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { hasDirectorSession } from '../composables/useAppSession'
 import Inicio_Principal from '../views/Inicio_Principal.vue'
 import Login_Principal from '../views/Login_Principal.vue'
 import Panel_Principal from '../views/Panel_Principal.vue'
@@ -138,6 +139,18 @@ const router = createRouter({
       ],
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  if (!to.path.startsWith('/panel')) {
+    return true
+  }
+
+  if (!hasDirectorSession()) {
+    return { path: '/login' }
+  }
+
+  return true
 })
 
 export default router

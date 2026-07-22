@@ -1,6 +1,135 @@
 <script setup>
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import profileImage from '../../assets/images/IngenieroProyetos.png'
+import { useRoute } from 'vue-router'
+import {
+  ROLE_VALUES,
+  getUserById,
+  updateUserById,
+  uploadUserAvatar,
+} from '../../composables/useUsersData'
+
+const route = useRoute()
+const loading = ref(false)
+const message = ref('')
+const errorMessage = ref('')
+const userId = ref('')
+const currentAvatarUrl = ref('')
+const selectedAvatarFile = ref(null)
+const fileInputRef = ref(null)
+const temporaryPreviewUrl = ref('')
+
+const form = reactive({
+  firstName: '',
+  lastName: '',
+  email: '',
+  birthDate: '',
+  address: '',
+  phone: '',
+  nationalId: '',
+  role: 'archivero',
+  isActive: true,
+})
+
+const loadUser = async () => {
+  userId.value = String(route.query.uid || '')
+  if (!userId.value) {
+    errorMessage.value = 'No se recibio el usuario a editar.'
+    return
+  }
+
+  try {
+    const user = await getUserById(userId.value)
+    form.firstName = user.firstName || ''
+    form.lastName = user.lastName || ''
+    form.email = user.email || ''
+    form.birthDate = user.birthDate || ''
+    form.address = user.address || ''
+    form.phone = user.phone || ''
+    form.nationalId = user.nationalId || ''
+    form.role = ROLE_VALUES.includes(user.role) ? user.role : 'archivero'
+    form.isActive = !!user.isActive
+    currentAvatarUrl.value = user.avatarUrl || ''
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo cargar el usuario.'
+  }
+}
+
+const pickAvatar = () => {
+  fileInputRef.value?.click()
+}
+
+const onAvatarChange = (event) => {
+  const file = event.target?.files?.[0]
+  selectedAvatarFile.value = file || null
+
+  if (temporaryPreviewUrl.value) {
+    URL.revokeObjectURL(temporaryPreviewUrl.value)
+    temporaryPreviewUrl.value = ''
+  }
+
+  if (file) {
+    temporaryPreviewUrl.value = URL.createObjectURL(file)
+  }
+}
+
+const saveUser = async () => {
+  if (!userId.value) return
+
+  loading.value = true
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    let avatarUrl = currentAvatarUrl.value || ''
+
+    if (selectedAvatarFile.value) {
+      avatarUrl = await uploadUserAvatar(
+        userId.value,
+        selectedAvatarFile.value,
+        currentAvatarUrl.value,
+      )
+      currentAvatarUrl.value = avatarUrl
+      selectedAvatarFile.value = null
+      if (temporaryPreviewUrl.value) {
+        URL.revokeObjectURL(temporaryPreviewUrl.value)
+        temporaryPreviewUrl.value = ''
+      }
+      if (fileInputRef.value) {
+        fileInputRef.value.value = ''
+      }
+    }
+
+    await updateUserById(userId.value, {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      birthDate: form.birthDate,
+      address: form.address,
+      phone: form.phone,
+      nationalId: form.nationalId,
+      avatarUrl,
+      role: form.role,
+      isActive: form.isActive,
+    })
+
+    message.value = 'Usuario actualizado correctamente.'
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo actualizar el usuario.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadUser()
+})
+
+onBeforeUnmount(() => {
+  if (temporaryPreviewUrl.value) {
+    URL.revokeObjectURL(temporaryPreviewUrl.value)
+    temporaryPreviewUrl.value = ''
+  }
+})
 </script>
 
 <template>
@@ -9,30 +138,89 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
 
     <div class="settings-card">
       <div class="tabs">
-        <RouterLink class="tab" to="/panel/usuarios/ver">Ver Usuario</RouterLink>
-        <RouterLink class="tab active" to="/panel/usuarios/editar">Editar Usuario</RouterLink>
+        <RouterLink
+          class="tab"
+          :to="{ path: '/panel/usuarios/ver', query: { uid: route.query.uid } }"
+          >Ver Usuario</RouterLink
+        >
+        <RouterLink
+          class="tab active"
+          :to="{ path: '/panel/usuarios/editar', query: { uid: route.query.uid } }"
+          >Editar Usuario</RouterLink
+        >
       </div>
+
+      <p v-if="message" class="success-banner">{{ message }}</p>
+      <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
 
       <div class="profile-body">
         <div class="avatar-wrap">
-          <img :src="profileImage" alt="Editar usuario" />
-          <span class="edit-badge">✎</span>
+          <img
+            v-if="temporaryPreviewUrl || currentAvatarUrl"
+            :src="temporaryPreviewUrl || currentAvatarUrl"
+            alt="Editar usuario"
+          />
+          <div v-else class="avatar-fallback" aria-label="Usuario sin avatar">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M4 21C4 17.6863 7.58172 15 12 15C16.4183 15 20 17.6863 20 21"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <button class="edit-badge" type="button" @click="pickAvatar">✎</button>
+          <input
+            ref="fileInputRef"
+            class="avatar-input"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            @change="onAvatarChange"
+          />
         </div>
 
         <div class="fields-grid">
-          <label><span>Nombre</span><input value="Denis Helmer" /></label>
-          <label><span>Apellido</span><input value="Ramos Paco" /></label>
-          <label><span>Correo</span><input value="denis@gmail.com" /></label>
-          <label><span>Contraseña</span><input value="**********" /></label>
-          <label><span>Teléfono</span><input value="6826065" /></label>
-          <label><span>Carnet</span><input value="9978045" /></label>
-          <label><span>Rol</span><input value="Administrador" /></label>
-          <label><span>Estado de cuenta</span><input value="Activo" /></label>
+          <label><span>Nombre</span><input v-model="form.firstName" /></label>
+          <label><span>Apellido</span><input v-model="form.lastName" /></label>
+          <label><span>Correo</span><input :value="form.email" readonly /></label>
+          <label><span>Contraseña</span><input value="**********" readonly /></label>
+          <label
+            ><span>Fecha de nacimiento</span><input v-model="form.birthDate" type="date"
+          /></label>
+          <label><span>Direccion</span><input v-model="form.address" /></label>
+          <label><span>Teléfono</span><input v-model="form.phone" /></label>
+          <label><span>Carnet</span><input v-model="form.nationalId" /></label>
+          <label>
+            <span>Rol</span>
+            <select v-model="form.role">
+              <option value="director">Director</option>
+              <option value="jefe_seccion">Jefe de Seccion</option>
+              <option value="archivero">Archivero</option>
+            </select>
+          </label>
+          <label>
+            <span>Estado de cuenta</span>
+            <select v-model="form.isActive">
+              <option :value="true">Activo</option>
+              <option :value="false">Desactivo</option>
+            </select>
+          </label>
         </div>
       </div>
 
       <div class="footer-actions">
-        <button class="save-btn" type="button">Guardar</button>
+        <button :disabled="loading" class="save-btn" type="button" @click="saveUser">
+          {{ loading ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </section>
@@ -112,6 +300,21 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
   }
 }
 
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #edf2ff;
+  color: #3b66d2;
+  display: grid;
+  place-items: center;
+
+  svg {
+    width: 52%;
+    height: 52%;
+  }
+}
+
 .edit-badge {
   position: absolute;
   right: 4px;
@@ -121,10 +324,16 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
   border-radius: 50%;
   background: #2f3dff;
   color: white;
+  border: 0;
   display: grid;
   place-items: center;
   font-size: 0.95rem;
   border: 3px solid white;
+  cursor: pointer;
+}
+
+.avatar-input {
+  display: none;
 }
 
 .fields-grid {
@@ -153,6 +362,35 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
     font-size: 0.95rem;
     outline: none;
   }
+
+  select {
+    width: 100%;
+    border: 1px solid #7046ff;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    background: #ffffff;
+    color: #465b92;
+    font-size: 0.95rem;
+    outline: none;
+  }
+}
+
+.success-banner,
+.error-banner {
+  margin: 0.7rem 0 0;
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.88rem;
+}
+
+.success-banner {
+  background: #ebfff0;
+  color: #1a783f;
+}
+
+.error-banner {
+  background: #ffe8e8;
+  color: #9b2121;
 }
 
 .footer-actions {

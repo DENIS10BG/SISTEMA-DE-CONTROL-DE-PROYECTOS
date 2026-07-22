@@ -1,6 +1,118 @@
 <script setup>
+import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import profileImage from '../../assets/images/IngenieroProyetos.png'
+import { getCurrentUser, updateOwnProfile, uploadUserAvatar } from '../../composables/useUsersData'
+
+const loading = ref(false)
+const message = ref('')
+const errorMessage = ref('')
+const currentUserId = ref(null)
+const currentAvatarUrl = ref('')
+const selectedAvatarFile = ref(null)
+const fileInputRef = ref(null)
+const temporaryPreviewUrl = ref('')
+
+const form = reactive({
+  firstName: '',
+  lastName: '',
+  email: '',
+  birthDate: '',
+  address: '',
+  phone: '',
+  nationalId: '',
+  roleLabel: '',
+  isActive: true,
+})
+
+const loadUser = async () => {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return
+
+    currentUserId.value = user.id
+    form.firstName = user.firstName || ''
+    form.lastName = user.lastName || ''
+    form.email = user.email || ''
+    form.birthDate = user.birthDate || ''
+    form.address = user.address || ''
+    form.phone = user.phone || ''
+    form.nationalId = user.nationalId || ''
+    form.roleLabel = user.roleLabel || ''
+    form.isActive = !!user.isActive
+    currentAvatarUrl.value = user.avatarUrl || ''
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo cargar el perfil.'
+  }
+}
+
+const pickAvatar = () => {
+  fileInputRef.value?.click()
+}
+
+const onAvatarChange = (event) => {
+  const file = event.target?.files?.[0]
+  selectedAvatarFile.value = file || null
+
+  if (temporaryPreviewUrl.value) {
+    URL.revokeObjectURL(temporaryPreviewUrl.value)
+    temporaryPreviewUrl.value = ''
+  }
+
+  if (file) {
+    temporaryPreviewUrl.value = URL.createObjectURL(file)
+  }
+}
+
+const saveProfile = async () => {
+  if (!currentUserId.value) return
+
+  loading.value = true
+  errorMessage.value = ''
+  message.value = ''
+
+  try {
+    let avatarUrl = currentAvatarUrl.value || ''
+
+    if (selectedAvatarFile.value) {
+      avatarUrl = await uploadUserAvatar(
+        currentUserId.value,
+        selectedAvatarFile.value,
+        currentAvatarUrl.value,
+      )
+      currentAvatarUrl.value = avatarUrl
+      selectedAvatarFile.value = null
+      if (temporaryPreviewUrl.value) {
+        URL.revokeObjectURL(temporaryPreviewUrl.value)
+        temporaryPreviewUrl.value = ''
+      }
+      if (fileInputRef.value) {
+        fileInputRef.value.value = ''
+      }
+    }
+
+    await updateOwnProfile(currentUserId.value, {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      birthDate: form.birthDate,
+      address: form.address,
+      phone: form.phone,
+      nationalId: form.nationalId,
+      avatarUrl,
+    })
+
+    message.value = 'Perfil actualizado correctamente.'
+    window.dispatchEvent(new CustomEvent('user-profile-updated'))
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo actualizar el perfil.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadUser()
+})
 </script>
 
 <template>
@@ -13,58 +125,70 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
         <RouterLink class="tab active" to="/panel/ajustes">Editar Perfil</RouterLink>
       </div>
 
+      <p v-if="message" class="success-banner">{{ message }}</p>
+      <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
+
       <div class="profile-body">
         <div class="avatar-wrap">
-          <img :src="profileImage" alt="Editar perfil" />
-          <span class="edit-badge">✎</span>
+          <img :src="temporaryPreviewUrl || currentAvatarUrl || profileImage" alt="Editar perfil" />
+          <button class="edit-badge" type="button" @click="pickAvatar">✎</button>
+          <input
+            ref="fileInputRef"
+            class="avatar-input"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            @change="onAvatarChange"
+          />
         </div>
 
         <div class="fields-grid">
           <label>
             <span>Nombre</span>
-            <input value="Charlene Reed" />
+            <input v-model="form.firstName" />
           </label>
           <label>
             <span>Apellido</span>
-            <input value="Charlene Reed" />
+            <input v-model="form.lastName" />
           </label>
           <label>
             <span>Correo</span>
-            <input value="charlenereed@gmail.com" />
+            <input :value="form.email" readonly />
           </label>
           <label>
             <span>Contraseña</span>
-            <input value="**********" />
+            <input value="**********" readonly />
           </label>
           <label>
             <span>Fecha de nacimiento</span>
-            <input value="25 January 1990" />
+            <input v-model="form.birthDate" type="date" />
           </label>
           <label>
             <span>Direccion</span>
-            <input value="San Jose, California, USA" />
+            <input v-model="form.address" />
           </label>
           <label>
             <span>Telefono</span>
-            <input value="78860123" />
+            <input v-model="form.phone" />
           </label>
           <label>
             <span>Carnet</span>
-            <input value="9978045" />
+            <input v-model="form.nationalId" />
           </label>
           <label>
             <span>Rol</span>
-            <input value="Administrador" />
+            <input :value="form.roleLabel" readonly />
           </label>
           <label>
             <span>Estado de cuenta</span>
-            <input value="Activo" />
+            <input :value="form.isActive ? 'Activo' : 'Desactivo'" readonly />
           </label>
         </div>
       </div>
 
       <div class="footer-actions">
-        <button class="save-btn" type="button">Guardar</button>
+        <button :disabled="loading" class="save-btn" type="button" @click="saveProfile">
+          {{ loading ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </section>
@@ -133,6 +257,24 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
   }
 }
 
+.success-banner,
+.error-banner {
+  margin: 0.7rem 0 0;
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.88rem;
+}
+
+.success-banner {
+  background: #ebfff0;
+  color: #1a783f;
+}
+
+.error-banner {
+  background: #ffe8e8;
+  color: #9b2121;
+}
+
 .profile-body {
   display: grid;
   grid-template-columns: 130px 1fr;
@@ -164,10 +306,16 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
   border-radius: 50%;
   background: #2f3dff;
   color: white;
+  border: 0;
   display: grid;
   place-items: center;
   font-size: 0.75rem;
   border: 3px solid white;
+  cursor: pointer;
+}
+
+.avatar-input {
+  display: none;
 }
 
 .fields-grid {

@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { getCurrentUserId, listUsers, setUserState } from '../../composables/useUsersData'
 import IconAnadirUsuario from '@/components/icons/IconsUser/AñadirUsuario.svg'
 import IconBusqueda from '@/components/icons/IconsUser/Busqueda.svg'
 import IconFiltroUsuario from '@/components/icons/IconsUser/FiltroUsuario.svg'
@@ -12,102 +13,82 @@ import IconEditarPerfilUsuario from '@/components/icons/IconsUser/EditarPerfilUs
 import IconUsuarioActivo from '@/components/icons/IconsUser/UsuarioActivo.svg'
 import IconUsuarioDesactivado from '@/components/icons/IconsUser/UsuarioDesactivado.svg'
 
-const rows = [
-  {
-    id: 1,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Activo',
-  },
-  {
-    id: 2,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Desactivo',
-  },
-  {
-    id: 3,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Activo',
-  },
-  {
-    id: 4,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Activo',
-  },
-  {
-    id: 5,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Activo',
-  },
-  {
-    id: 6,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Activo',
-  },
-  {
-    id: 7,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Activo',
-  },
-  {
-    id: 8,
-    no: '01.',
-    nombres: 'Denis Helmer',
-    apellidos: 'Ramos Paco',
-    telefono: '6826065',
-    rol: 'Administrador',
-    estado: 'Activo',
-  },
-]
-
-const activeStateIds = ref(new Set([1, 3, 4, 5]))
+const users = ref([])
+const searchText = ref('')
+const loading = ref(false)
+const errorMessage = ref('')
 const currentPage = ref(1)
 const rowsPerPage = 7
 const sortField = ref('nombres')
 const sortDirection = ref('asc')
 
-const isActive = (id) => activeStateIds.value.has(id)
+const loadUsers = async () => {
+  loading.value = true
+  errorMessage.value = ''
 
-const getStateLabel = (id) => (isActive(id) ? 'Activo' : 'Desactivo')
+  try {
+    const currentUserId = await getCurrentUserId()
+    users.value = await listUsers({ excludeUserId: currentUserId })
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo cargar la lista de usuarios.'
+  } finally {
+    loading.value = false
+  }
+}
 
-const getStateIcon = (id) => (isActive(id) ? IconUsuarioActivo : IconUsuarioDesactivado)
+const isActive = (row) => !!row.isActive
 
-const totalPages = computed(() => Math.ceil(rows.length / rowsPerPage))
+const getStateLabel = (row) => (isActive(row) ? 'Activo' : 'Desactivo')
+
+const getStateIcon = (row) => (isActive(row) ? IconUsuarioActivo : IconUsuarioDesactivado)
+
+const filteredRows = computed(() => {
+  const term = searchText.value.trim().toLowerCase()
+  if (!term) {
+    return users.value
+  }
+
+  return users.value.filter((row) => {
+    const bag =
+      `${row.firstName} ${row.lastName} ${row.email} ${row.phone} ${row.roleLabel}`.toLowerCase()
+    return bag.includes(term)
+  })
+})
+
+const totalPages = computed(() => {
+  const pages = Math.ceil(filteredRows.value.length / rowsPerPage)
+  return Math.max(1, pages)
+})
 
 const sortedRows = computed(() => {
   const direction = sortDirection.value === 'asc' ? 1 : -1
 
-  return [...rows].sort((left, right) => {
-    const leftValue = sortField.value === 'estado' ? getStateLabel(left.id) : left[sortField.value]
+  return [...filteredRows.value].sort((left, right) => {
+    const leftValue =
+      sortField.value === 'no'
+        ? left.id
+        : sortField.value === 'nombres'
+          ? left.firstName
+          : sortField.value === 'apellidos'
+            ? left.lastName
+            : sortField.value === 'telefono'
+              ? left.phone
+              : sortField.value === 'rol'
+                ? left.roleLabel
+                : getStateLabel(left)
+
     const rightValue =
-      sortField.value === 'estado' ? getStateLabel(right.id) : right[sortField.value]
+      sortField.value === 'no'
+        ? right.id
+        : sortField.value === 'nombres'
+          ? right.firstName
+          : sortField.value === 'apellidos'
+            ? right.lastName
+            : sortField.value === 'telefono'
+              ? right.phone
+              : sortField.value === 'rol'
+                ? right.roleLabel
+                : getStateLabel(right)
 
     return String(leftValue).localeCompare(String(rightValue), 'es', { numeric: true }) * direction
   })
@@ -142,17 +123,23 @@ const setSort = (field) => {
   currentPage.value = 1
 }
 
-const toggleState = (id) => {
-  const next = new Set(activeStateIds.value)
-
-  if (next.has(id)) {
-    next.delete(id)
-  } else {
-    next.add(id)
-  }
-
-  activeStateIds.value = next
+const toRowNumber = (row) => {
+  const fullIndex = sortedRows.value.findIndex((item) => item.id === row.id)
+  return `${String(fullIndex + 1).padStart(2, '0')}.`
 }
+
+const toggleState = async (row) => {
+  try {
+    await setUserState(row.id, !row.isActive)
+    row.isActive = !row.isActive
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo actualizar el estado del usuario.'
+  }
+}
+
+onMounted(() => {
+  loadUsers()
+})
 </script>
 
 <template>
@@ -166,7 +153,7 @@ const toggleState = (id) => {
 
       <div class="search-wrap">
         <img class="search-icon" :src="IconBusqueda" alt="Buscar" />
-        <input class="search" placeholder="Search for anything..." />
+        <input v-model="searchText" class="search" placeholder="Buscar por nombre, correo o rol" />
       </div>
 
       <button class="action-btn filter" type="button">
@@ -177,6 +164,9 @@ const toggleState = (id) => {
     </div>
 
     <div class="table-card">
+      <p v-if="loading" class="table-message">Cargando usuarios...</p>
+      <p v-if="errorMessage" class="table-error">{{ errorMessage }}</p>
+
       <table>
         <thead>
           <tr>
@@ -281,32 +271,40 @@ const toggleState = (id) => {
         </thead>
         <tbody>
           <tr v-for="row in paginatedRows" :key="row.id">
-            <td>{{ row.no }}</td>
-            <td>{{ row.nombres }}</td>
-            <td>{{ row.apellidos }}</td>
-            <td>{{ row.telefono }}</td>
-            <td>{{ row.rol }}</td>
-            <td>{{ getStateLabel(row.id) }}</td>
+            <td>{{ toRowNumber(row) }}</td>
+            <td>
+              <div class="user-cell">
+                <span class="user-name">{{ row.firstName }}</span>
+              </div>
+            </td>
+            <td>{{ row.lastName }}</td>
+            <td>{{ row.phone }}</td>
+            <td>{{ row.roleLabel }}</td>
+            <td>{{ getStateLabel(row) }}</td>
             <td>
               <div class="options">
-                <RouterLink class="opt view" to="/panel/usuarios/ver" aria-label="Ver usuario">
+                <RouterLink
+                  class="opt view"
+                  :to="{ path: '/panel/usuarios/ver', query: { uid: row.id } }"
+                  aria-label="Ver usuario"
+                >
                   <img :src="IconVerPerfilUsuario" alt="Ver usuario" />
                 </RouterLink>
                 <RouterLink
                   class="opt edit"
-                  to="/panel/usuarios/editar"
+                  :to="{ path: '/panel/usuarios/editar', query: { uid: row.id } }"
                   aria-label="Editar usuario"
                 >
                   <img :src="IconEditarPerfilUsuario" alt="Editar usuario" />
                 </RouterLink>
                 <button
                   class="opt status"
-                  :class="isActive(row.id) ? 'active' : 'inactive'"
+                  :class="isActive(row) ? 'active' : 'inactive'"
                   type="button"
-                  :aria-label="isActive(row.id) ? 'Desactivar usuario' : 'Activar usuario'"
-                  @click="toggleState(row.id)"
+                  :aria-label="isActive(row) ? 'Desactivar usuario' : 'Activar usuario'"
+                  @click="toggleState(row)"
                 >
-                  <img :src="getStateIcon(row.id)" :alt="getStateLabel(row.id)" />
+                  <img :src="getStateIcon(row)" :alt="getStateLabel(row)" />
                 </button>
               </div>
             </td>
@@ -426,6 +424,49 @@ const toggleState = (id) => {
   overflow-y: auto;
   box-shadow: 0 10px 24px rgba(35, 53, 87, 0.08);
   padding: 0.35rem 0.7rem 0.45rem;
+}
+
+.table-message,
+.table-error {
+  margin: 0.45rem 0.4rem;
+  font-size: 0.9rem;
+}
+
+.table-message {
+  color: #395791;
+}
+
+.table-error {
+  color: #a62b2b;
+}
+
+.user-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.user-avatar {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #edf1ff;
+  color: #4a5d8f;
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.user-name {
+  white-space: nowrap;
 }
 
 table {

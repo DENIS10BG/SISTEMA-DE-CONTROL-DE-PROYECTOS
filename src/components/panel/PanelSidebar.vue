@@ -1,5 +1,5 @@
 <script setup>
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import IconPanelGeneral from '@/components/icons/Iconsnavbar/PanelGeneral.svg'
 import IconUsuarios from '@/components/icons/Iconsnavbar/Usuarios.svg'
 import IconProyectos from '@/components/icons/Iconsnavbar/Proyectos.svg'
@@ -7,6 +7,7 @@ import IconProcesamiento from '@/components/icons/Iconsnavbar/Procesamiento.svg'
 import IconReportes from '@/components/icons/Iconsnavbar/Reportes.svg'
 import IconAlertas from '@/components/icons/Iconsnavbar/Alertas.svg'
 import IconAsistente from '@/components/icons/Iconsnavbar/Asistente.svg'
+import { clearAppSession } from '../../composables/useAppSession'
 
 const menuItems = [
   { label: 'Panel General', to: '/panel/general', icon: IconPanelGeneral },
@@ -19,10 +20,16 @@ const menuItems = [
 ]
 
 const route = useRoute()
+const router = useRouter()
 
 const isActive = (to) => {
   if (route.path === to) return true
   return route.path.startsWith(`${to}/`)
+}
+
+const logout = async () => {
+  clearAppSession()
+  router.push('/login')
 }
 </script>
 
@@ -43,7 +50,7 @@ const isActive = (to) => {
       </RouterLink>
     </nav>
 
-    <RouterLink class="logout-btn" to="/">Cerrar Sesion</RouterLink>
+    <button class="logout-btn" type="button" @click="logout">Cerrar Sesion</button>
   </aside>
 </template>
 
@@ -127,7 +134,8 @@ const isActive = (to) => {
 }
 
 .logout-btn {
-  text-decoration: none;
+  border: 0;
+  cursor: pointer;
   text-align: center;
   background: #70cf77;
   color: white;

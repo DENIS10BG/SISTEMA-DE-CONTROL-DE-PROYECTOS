@@ -2,11 +2,57 @@
 import Header_Principal from '@/layouts/Header_Principal.vue'
 import Footer_Principal from '@/layouts/Footer_Principal.vue'
 import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 import Escudo from '../assets/images/Escudo.png'
+import { supabase } from '../../utils/supabase'
+import { setAppSession } from '../composables/useAppSession'
 
 const router = useRouter()
 
-const iniciarSesion = () => {
+const email = ref('')
+const password = ref('')
+const loading = ref(false)
+const errorMessage = ref('')
+
+const iniciarSesion = async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  const { data, error } = await supabase.rpc('app_login', {
+    p_email: email.value,
+    p_password: password.value,
+  })
+
+  if (error) {
+    errorMessage.value = `No se pudo iniciar sesion: ${error.message}`
+    loading.value = false
+    return
+  }
+
+  const user = Array.isArray(data) ? data[0] : null
+
+  if (!user?.user_id) {
+    errorMessage.value = 'Correo o contrasena incorrectos.'
+    loading.value = false
+    return
+  }
+
+  const hasDirectorAccess = user.role === 'director' && user.is_active
+  if (!hasDirectorAccess) {
+    errorMessage.value = 'Acceso denegado: solo el rol director puede ingresar al panel.'
+    loading.value = false
+    return
+  }
+
+  setAppSession({
+    userId: user.user_id,
+    email: user.email,
+    fullName: user.full_name,
+    role: user.role,
+    isActive: user.is_active,
+  })
+
+  loading.value = false
   router.push('/panel/general')
 }
 </script>
@@ -28,18 +74,34 @@ const iniciarSesion = () => {
         <div class="login-form-panel">
           <h2>INICIA SESIÓN</h2>
 
+          <p v-if="errorMessage" class="login-error">{{ errorMessage }}</p>
+
           <form class="login-form" @submit.prevent="iniciarSesion">
             <label class="field">
-              <span>Usuario</span>
-              <input type="text" placeholder="Username" autocomplete="username" />
+              <span>Correo</span>
+              <input
+                v-model="email"
+                type="email"
+                placeholder="correo@empresa.com"
+                autocomplete="username"
+                required
+              />
             </label>
 
             <label class="field">
               <span>Contraseña</span>
-              <input type="password" placeholder="Password" autocomplete="current-password" />
+              <input
+                v-model="password"
+                type="password"
+                placeholder="Password"
+                autocomplete="current-password"
+                required
+              />
             </label>
 
-            <button type="submit" class="btn-submit">Inicia Sesion</button>
+            <button :disabled="loading" type="submit" class="btn-submit">
+              {{ loading ? 'Validando...' : 'Inicia Sesion' }}
+            </button>
             <a href="#" class="forgot-link">Olvidaste tu Contraseña?</a>
           </form>
         </div>
@@ -131,6 +193,15 @@ const iniciarSesion = () => {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+}
+
+.login-error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: #ffe7e7;
+  color: #8d1e1e;
+  font-size: 0.92rem;
 }
 
 .field {

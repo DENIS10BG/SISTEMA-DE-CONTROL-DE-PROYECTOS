@@ -1,6 +1,35 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import profileImage from '../../assets/images/IngenieroProyetos.png'
+import { useRoute } from 'vue-router'
+import { getUserById } from '../../composables/useUsersData'
+
+const route = useRoute()
+const user = ref(null)
+const errorMessage = ref('')
+
+const birthDateText = computed(() => {
+  if (!user.value?.birthDate) return ''
+  return new Date(`${user.value.birthDate}T00:00:00`).toLocaleDateString('es-BO')
+})
+
+const loadUser = async () => {
+  const userId = route.query.uid
+  if (!userId) {
+    errorMessage.value = 'No se recibio el usuario a visualizar.'
+    return
+  }
+
+  try {
+    user.value = await getUserById(userId)
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo cargar el usuario.'
+  }
+}
+
+onMounted(() => {
+  loadUser()
+})
 </script>
 
 <template>
@@ -9,25 +38,58 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
 
     <div class="profile-card">
       <div class="tabs">
-        <RouterLink class="tab active" to="/panel/usuarios/ver">Ver Usuario</RouterLink>
-        <RouterLink class="tab" to="/panel/usuarios/editar">Editar Usuario</RouterLink>
+        <RouterLink
+          class="tab active"
+          :to="{ path: '/panel/usuarios/ver', query: { uid: route.query.uid } }"
+          >Ver Usuario</RouterLink
+        >
+        <RouterLink
+          class="tab"
+          :to="{ path: '/panel/usuarios/editar', query: { uid: route.query.uid } }"
+          >Editar Usuario</RouterLink
+        >
       </div>
+
+      <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
 
       <div class="profile-body">
         <div class="avatar-wrap">
-          <img :src="profileImage" alt="Usuario" />
+          <img v-if="user?.avatarUrl" :src="user.avatarUrl" alt="Usuario" />
+          <div v-else class="avatar-fallback" aria-label="Usuario sin avatar">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M4 21C4 17.6863 7.58172 15 12 15C16.4183 15 20 17.6863 20 21"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
           <span class="status-dot"></span>
         </div>
 
         <div class="fields-grid">
-          <label><span>Nombre</span><input value="Denis Helmer" readonly /></label>
-          <label><span>Apellido</span><input value="Ramos Paco" readonly /></label>
-          <label><span>Correo</span><input value="denis@gmail.com" readonly /></label>
+          <label><span>Nombre</span><input :value="user?.firstName || ''" readonly /></label>
+          <label><span>Apellido</span><input :value="user?.lastName || ''" readonly /></label>
+          <label><span>Correo</span><input :value="user?.email || ''" readonly /></label>
           <label><span>Contraseña</span><input value="**********" readonly /></label>
-          <label><span>Teléfono</span><input value="6826065" readonly /></label>
-          <label><span>Carnet</span><input value="9978045" readonly /></label>
-          <label><span>Rol</span><input value="Administrador" readonly /></label>
-          <label><span>Estado de cuenta</span><input value="Activo" readonly /></label>
+          <label><span>Fecha de nacimiento</span><input :value="birthDateText" readonly /></label>
+          <label><span>Direccion</span><input :value="user?.address || ''" readonly /></label>
+          <label><span>Teléfono</span><input :value="user?.phone || ''" readonly /></label>
+          <label><span>Carnet</span><input :value="user?.nationalId || ''" readonly /></label>
+          <label><span>Rol</span><input :value="user?.roleLabel || ''" readonly /></label>
+          <label
+            ><span>Estado de cuenta</span
+            ><input :value="user?.isActive ? 'Activo' : 'Desactivo'" readonly
+          /></label>
         </div>
       </div>
     </div>
@@ -86,6 +148,15 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
   }
 }
 
+.error-banner {
+  margin: 0.7rem 0 0;
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.88rem;
+  background: #ffe8e8;
+  color: #9b2121;
+}
+
 .profile-body {
   display: grid;
   grid-template-columns: 140px 1fr;
@@ -105,6 +176,21 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+  }
+}
+
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #edf2ff;
+  color: #3b66d2;
+  display: grid;
+  place-items: center;
+
+  svg {
+    width: 52%;
+    height: 52%;
   }
 }
 

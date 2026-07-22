@@ -246,7 +246,7 @@ const resetPage = () => {
         </div>
         <div class="bottom-row">
           <label><span>ARCHIVO PERTENIECIECIENTE</span><input value="Administrador" /></label>
-          <button class="download">Descargar</button>
+          <button class="download">Subir Archivos</button>
         </div>
       </div>
     </div>

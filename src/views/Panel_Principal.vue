@@ -1,5 +1,7 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import PanelModuleCard from '@/components/panel/PanelModuleCard.vue'
+import { getCurrentUser } from '../composables/useUsersData'
 
 const modules = [
   {
@@ -45,6 +47,20 @@ const modules = [
     to: '/panel/asistente',
   },
 ]
+
+const user = ref(null)
+
+const loadUser = async () => {
+  try {
+    user.value = await getCurrentUser()
+  } catch {
+    user.value = null
+  }
+}
+
+onMounted(() => {
+  loadUser()
+})
 </script>
 
 <template>
@@ -55,21 +71,24 @@ const modules = [
 
     <section class="profile-card">
       <div class="profile-info">
-        <div class="avatar-photo">MR</div>
+        <div class="avatar-photo">
+          <img v-if="user?.avatarUrl" :src="user.avatarUrl" alt="Perfil" />
+          <span v-else>{{ user?.initials || 'US' }}</span>
+        </div>
         <div>
-          <strong>Maria Rocke Castillo</strong>
-          <span>Administrador</span>
+          <strong>{{ user?.fullName || 'Usuario' }}</strong>
+          <span>{{ user?.roleLabel || 'Sin rol' }}</span>
         </div>
       </div>
 
       <div class="info-group">
         <span>Ciudad</span>
-        <strong>La paz - Bolivia</strong>
+        <strong>{{ user?.address || 'Sin dato' }}</strong>
       </div>
 
       <div class="info-group">
         <span>Estado</span>
-        <strong class="state">Activado</strong>
+        <strong class="state">{{ user?.isActive ? 'Activado' : 'Desactivado' }}</strong>
       </div>
     </section>
 
@@ -203,8 +222,15 @@ h1 {
   color: #ffffff;
   display: grid;
   place-items: center;
+  overflow: hidden;
   font-weight: 700;
   font-size: 0.86rem;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 @media (max-width: 1200px) {

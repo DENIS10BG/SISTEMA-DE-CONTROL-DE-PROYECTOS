@@ -1,6 +1,63 @@
 <script setup>
+import { reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
 import profileImage from '../../assets/images/IngenieroProyetos.png'
+import { createUserWithProfile } from '../../composables/useUsersData'
+
+const router = useRouter()
+const loading = ref(false)
+const message = ref('')
+const errorMessage = ref('')
+
+const form = reactive({
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  birthDate: '',
+  address: '',
+  phone: '',
+  nationalId: '',
+  role: 'archivero',
+  isActive: true,
+})
+
+const saveUser = async () => {
+  loading.value = true
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    const userId = await createUserWithProfile({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      password: form.password,
+      birthDate: form.birthDate,
+      address: form.address,
+      phone: form.phone,
+      nationalId: form.nationalId,
+      role: form.role,
+      isActive: form.isActive,
+    })
+
+    message.value = 'Usuario creado correctamente.'
+    router.push({ path: '/panel/usuarios/editar', query: { uid: userId } })
+  } catch (error) {
+    if (error?.message?.includes('admin_create_user_with_profile')) {
+      errorMessage.value =
+        'Falta ejecutar el SQL 006_admin_create_user_rpc.sql en Supabase SQL Editor.'
+    } else if (error?.message?.toLowerCase().includes('rate limit')) {
+      errorMessage.value =
+        'Se alcanzo el limite de correos de autenticacion. Con el SQL 006 activo ya no deberia ocurrir este error.'
+    } else {
+      errorMessage.value = error.message || 'No se pudo crear el usuario.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <template>
@@ -12,6 +69,9 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
         <span class="tab active">Nuevo Usuario</span>
       </div>
 
+      <p v-if="message" class="success-banner">{{ message }}</p>
+      <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
+
       <div class="profile-body">
         <div class="avatar-wrap">
           <img :src="profileImage" alt="Nuevo usuario" />
@@ -19,20 +79,55 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
         </div>
 
         <div class="fields-grid">
-          <label><span>Nombre</span><input placeholder="Ingrese nombre" /></label>
-          <label><span>Apellido</span><input placeholder="Ingrese apellido" /></label>
-          <label><span>Correo</span><input placeholder="correo@ejemplo.com" /></label>
-          <label><span>Contraseña</span><input type="password" placeholder="**********" /></label>
-          <label><span>Teléfono</span><input placeholder="Ingrese teléfono" /></label>
-          <label><span>Carnet</span><input placeholder="Ingrese carnet" /></label>
-          <label><span>Rol</span><input placeholder="Administrador" /></label>
-          <label><span>Estado de cuenta</span><input placeholder="Activo" /></label>
+          <label
+            ><span>Nombre</span><input v-model="form.firstName" placeholder="Ingrese nombre"
+          /></label>
+          <label
+            ><span>Apellido</span><input v-model="form.lastName" placeholder="Ingrese apellido"
+          /></label>
+          <label
+            ><span>Correo</span
+            ><input v-model="form.email" type="email" placeholder="correo@ejemplo.com"
+          /></label>
+          <label
+            ><span>Contraseña</span
+            ><input v-model="form.password" type="password" placeholder="**********"
+          /></label>
+          <label
+            ><span>Fecha de nacimiento</span><input v-model="form.birthDate" type="date"
+          /></label>
+          <label
+            ><span>Direccion</span><input v-model="form.address" placeholder="Ingrese direccion"
+          /></label>
+          <label
+            ><span>Teléfono</span><input v-model="form.phone" placeholder="Ingrese teléfono"
+          /></label>
+          <label
+            ><span>Carnet</span><input v-model="form.nationalId" placeholder="Ingrese carnet"
+          /></label>
+          <label>
+            <span>Rol</span>
+            <select v-model="form.role">
+              <option value="director">Director</option>
+              <option value="jefe_seccion">Jefe de Seccion</option>
+              <option value="archivero">Archivero</option>
+            </select>
+          </label>
+          <label>
+            <span>Estado de cuenta</span>
+            <select v-model="form.isActive">
+              <option :value="true">Activo</option>
+              <option :value="false">Desactivo</option>
+            </select>
+          </label>
         </div>
       </div>
 
       <div class="footer-actions">
         <RouterLink class="cancel-btn" to="/panel/usuarios">Cancelar</RouterLink>
-        <button class="save-btn" type="button">Guardar</button>
+        <button :disabled="loading" class="save-btn" type="button" @click="saveUser">
+          {{ loading ? 'Creando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </section>
@@ -162,6 +257,35 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
     font-size: 0.9rem;
     outline: none;
   }
+
+  select {
+    width: 100%;
+    border: 1px solid #7046ff;
+    border-radius: 12px;
+    padding: 0.66rem 0.86rem;
+    background: #ffffff;
+    color: #465b92;
+    font-size: 0.9rem;
+    outline: none;
+  }
+}
+
+.success-banner,
+.error-banner {
+  margin: 0.7rem 0 0;
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.88rem;
+}
+
+.success-banner {
+  background: #ebfff0;
+  color: #1a783f;
+}
+
+.error-banner {
+  background: #ffe8e8;
+  color: #9b2121;
 }
 
 .footer-actions {

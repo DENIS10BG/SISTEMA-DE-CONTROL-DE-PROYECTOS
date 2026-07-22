@@ -1,6 +1,8 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { getCurrentUser } from '../../composables/useUsersData'
+import { clearAppSession } from '../../composables/useAppSession'
 import Escudo from '../../assets/images/Escudo.png'
 import Letras from '../../assets/images/Letras.png'
 import IconEngranaje from '@/components/icons/Iconsnavbar/Engranaje.svg'
@@ -10,6 +12,15 @@ import IconCerrarSesion from '@/components/icons/Iconsnavbar/CerrarSesion.svg'
 const router = useRouter()
 const menuOpen = ref(false)
 const menuRoot = ref(null)
+const currentUser = ref(null)
+
+const loadCurrentUser = async () => {
+  try {
+    currentUser.value = await getCurrentUser()
+  } catch {
+    currentUser.value = null
+  }
+}
 
 const toggleMenu = () => {
   menuOpen.value = !menuOpen.value
@@ -24,8 +35,9 @@ const goToAjustes = () => {
   router.push('/panel/perfil')
 }
 
-const logout = () => {
+const logout = async () => {
   closeMenu()
+  clearAppSession()
   router.push('/login')
 }
 
@@ -35,12 +47,19 @@ const handleDocumentClick = (event) => {
   }
 }
 
+const handleProfileUpdated = () => {
+  loadCurrentUser()
+}
+
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
+  window.addEventListener('user-profile-updated', handleProfileUpdated)
+  loadCurrentUser()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
+  window.removeEventListener('user-profile-updated', handleProfileUpdated)
 })
 </script>
 
@@ -58,10 +77,18 @@ onBeforeUnmount(() => {
         <img :src="IconEngranaje" alt="Configuración" />
       </RouterLink>
       <div class="profile-text">
-        <strong>Maria Roquez</strong>
+        <strong>{{ currentUser?.fullName || 'Usuario' }}</strong>
       </div>
       <div ref="menuRoot" class="avatar-wrap">
-        <button class="avatar" type="button" @click.stop="toggleMenu">MR</button>
+        <button class="avatar" type="button" @click.stop="toggleMenu">
+          <img
+            v-if="currentUser?.avatarUrl"
+            class="avatar-image"
+            :src="currentUser.avatarUrl"
+            alt="Avatar"
+          />
+          <span v-else>{{ currentUser?.initials || 'US' }}</span>
+        </button>
 
         <div v-if="menuOpen" class="profile-menu">
           <button type="button" class="menu-option" @click="goToAjustes">
@@ -175,6 +202,13 @@ onBeforeUnmount(() => {
   font-weight: 800;
   font-size: 0.95rem;
   cursor: pointer;
+  overflow: hidden;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatar-wrap {

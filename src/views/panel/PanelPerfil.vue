@@ -1,6 +1,26 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import profileImage from '../../assets/images/IngenieroProyetos.png'
+import { getCurrentUser } from '../../composables/useUsersData'
+
+const user = ref(null)
+
+const loadUser = async () => {
+  try {
+    user.value = await getCurrentUser()
+  } catch {
+    user.value = null
+  }
+}
+
+const birthDateText = computed(() => {
+  if (!user.value?.birthDate) return ''
+  return new Date(`${user.value.birthDate}T00:00:00`).toLocaleDateString('es-BO')
+})
+
+onMounted(() => {
+  loadUser()
+})
 </script>
 
 <template>
@@ -15,22 +35,40 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
 
       <div class="profile-body">
         <div class="avatar-wrap">
-          <img :src="profileImage" alt="Perfil" />
+          <img v-if="user?.avatarUrl" :src="user.avatarUrl" alt="Perfil" />
+          <div v-else class="avatar-fallback" aria-label="Usuario sin avatar">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M4 21C4 17.6863 7.58172 15 12 15C16.4183 15 20 17.6863 20 21"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
           <span class="status-dot"></span>
         </div>
 
         <div class="fields-grid">
           <label>
             <span>Nombre</span>
-            <input value="Charlene Reed" readonly />
+            <input :value="user?.firstName || ''" readonly />
           </label>
           <label>
             <span>Apellido</span>
-            <input value="Charlene Reed" readonly />
+            <input :value="user?.lastName || ''" readonly />
           </label>
           <label>
             <span>Correo</span>
-            <input value="charlenereed@gmail.com" readonly />
+            <input :value="user?.email || ''" readonly />
           </label>
           <label>
             <span>Contraseña</span>
@@ -38,27 +76,27 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
           </label>
           <label>
             <span>Fecha de nacimiento</span>
-            <input value="25 January 1990" readonly />
+            <input :value="birthDateText" readonly />
           </label>
           <label>
             <span>Direccion</span>
-            <input value="San Jose, California, USA" readonly />
+            <input :value="user?.address || ''" readonly />
           </label>
           <label>
             <span>Telefono</span>
-            <input value="78860123" readonly />
+            <input :value="user?.phone || ''" readonly />
           </label>
           <label>
             <span>Carnet</span>
-            <input value="9978045" readonly />
+            <input :value="user?.nationalId || ''" readonly />
           </label>
           <label>
             <span>Rol</span>
-            <input value="Administrador" readonly />
+            <input :value="user?.roleLabel || ''" readonly />
           </label>
           <label>
             <span>Estado de cuenta</span>
-            <input value="Activo" readonly />
+            <input :value="user?.isActive ? 'Activo' : 'Desactivo'" readonly />
           </label>
         </div>
       </div>
@@ -148,6 +186,21 @@ import profileImage from '../../assets/images/IngenieroProyetos.png'
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+  }
+}
+
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #edf2ff;
+  color: #3b66d2;
+  display: grid;
+  place-items: center;
+
+  svg {
+    width: 52%;
+    height: 52%;
   }
 }
 
