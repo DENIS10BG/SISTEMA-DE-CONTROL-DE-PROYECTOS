@@ -82,6 +82,11 @@ const router = createRouter({
           component: PanelProcesamientoVariante,
         },
         {
+          path: 'procesamiento/subarchivos',
+          name: 'panel-procesamiento-subarchivos',
+          component: PanelProcesamientoVariante,
+        },
+        {
           path: 'procesamiento/procesar',
           name: 'panel-procesamiento-procesar',
           component: PanelProcesamientoVariante,

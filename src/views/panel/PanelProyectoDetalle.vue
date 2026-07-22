@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import projectPreview from '../../assets/images/IngenieroProyetos.png'
 import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
 import IconCertificados from '@/components/icons/IconsProyect/Certificados.svg'
@@ -10,26 +10,218 @@ import IconDescarga from '@/components/icons/IconsProyect/Descarga.svg'
 import IconPreguntas from '@/components/icons/IconsProyect/Preguntas.svg'
 import IconFiltro from '@/components/icons/IconsUser/FiltroUsuario.svg'
 import IconFlechaIzquierda from '@/components/icons/IconsUser/FlechaIzquierda.svg'
+import { supabase } from '../../../utils/supabase'
 
-const lugares = [
-  'La Paz',
-  'Oruro',
-  'Potosi',
-  'Cochabamba',
-  'Tarija',
-  'Beni',
-  'Santa Cruz',
-  'Pando',
-  'Chuquisaca',
-]
+const route = useRoute()
+const router = useRouter()
 
-const anios = Array.from({ length: 17 }, (_, index) => String(2026 - index))
+const project = ref(null)
+const loading = ref(false)
+const loadError = ref('')
+const actionError = ref('')
+const isDownloading = ref(false)
+const folderListOpen = ref(false)
+const folderListTitle = ref('')
+const folderFiles = ref([])
+const folderLoading = ref(false)
+const folderError = ref('')
+const caoItems = ref([])
 
 const selectedLugar = ref('')
 const selectedAnio = ref('')
 
+const DIRECTORY_DB_NAME = 'sicepi-local-directory'
+const DIRECTORY_STORE_NAME = 'handles'
+const DIRECTORY_HANDLE_KEY = 'infra-root'
+const INFRASTRUCTURE_ROOT_NAME = 'Proyectos de Infraestructura'
+const runtimeRootHandle = ref(null)
+
+const lugares = computed(() => (project.value?.place ? [project.value.place] : []))
+const anios = computed(() => (project.value?.year ? [project.value.year] : []))
+
+const projectTitle = computed(() => project.value?.title || String(route.query.title || 'Proyecto'))
+const projectPlace = computed(
+  () => project.value?.place || String(route.query.place || 'No registrado'),
+)
+const projectYear = computed(
+  () => project.value?.year || String(route.query.year || 'No registrado'),
+)
+const projectType = computed(
+  () => project.value?.file_type || String(route.query.fileType || 'Proyecto'),
+)
+const projectTag = computed(() => projectType.value.toUpperCase())
+const previewSource = computed(() => project.value?.preview_image_url || projectPreview)
+const projectFileName = computed(
+  () => project.value?.local_file_name || `${projectTitle.value || 'proyecto'}.pdf`,
+)
+
+const projectLocalDirectory = computed(() => {
+  return (
+    project.value?.local_directory ||
+    `E:\\Proyectos de Infraestructura\\${sanitizeFolderName(projectTitle.value)}`
+  )
+})
+
+const descriptionText = computed(() => {
+  const lines = [
+    `Proyecto: ${projectTitle.value}`,
+    `Lugar: ${projectPlace.value}`,
+    `Año: ${projectYear.value}`,
+    `Tipo de archivo: ${projectType.value}`,
+    `Ruta local: ${projectLocalDirectory.value}\\${projectFileName.value}`,
+  ]
+
+  if (project.value?.cao_code) {
+    lines.push(`CAO: ${project.value.cao_code}`)
+  }
+
+  if (project.value?.parent_file) {
+    lines.push(`Archivo perteneciente: ${project.value.parent_file}`)
+  }
+
+  return lines.join('\n')
+})
+
+const sanitizeFolderName = (value) =>
+  (value || 'Proyecto')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, ' ')
+
+const openDirectoryDb = () =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open(DIRECTORY_DB_NAME, 1)
+
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(DIRECTORY_STORE_NAME)) {
+        db.createObjectStore(DIRECTORY_STORE_NAME)
+      }
+    }
+
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+
+const getSavedDirectoryHandle = async () => {
+  const db = await openDirectoryDb()
+  const handle = await new Promise((resolve, reject) => {
+    const tx = db.transaction(DIRECTORY_STORE_NAME, 'readonly')
+    const request = tx.objectStore(DIRECTORY_STORE_NAME).get(DIRECTORY_HANDLE_KEY)
+    request.onsuccess = () => resolve(request.result || null)
+    request.onerror = () => reject(request.error)
+  })
+  db.close()
+  return handle
+}
+
+const saveDirectoryHandle = async (handle) => {
+  const db = await openDirectoryDb()
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(DIRECTORY_STORE_NAME, 'readwrite')
+    tx.objectStore(DIRECTORY_STORE_NAME).put(handle, DIRECTORY_HANDLE_KEY)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+  db.close()
+}
+
+const hasReadWritePermission = async (handle, allowPrompt = true) => {
+  if (!handle) return false
+
+  const options = { mode: 'readwrite' }
+  if ((await handle.queryPermission(options)) === 'granted') return true
+  if (allowPrompt && (await handle.requestPermission(options)) === 'granted') return true
+  return false
+}
+
+const resolveInfrastructureDirectory = async (pickedHandle) => {
+  const pickedName = (pickedHandle?.name || '').toLowerCase()
+  const targetName = INFRASTRUCTURE_ROOT_NAME.toLowerCase()
+
+  if (pickedName === targetName) {
+    return pickedHandle
+  }
+
+  return pickedHandle.getDirectoryHandle(INFRASTRUCTURE_ROOT_NAME, { create: false })
+}
+
+const getInfrastructureRootHandle = async () => {
+  if (runtimeRootHandle.value && (await hasReadWritePermission(runtimeRootHandle.value, false))) {
+    return runtimeRootHandle.value
+  }
+
+  const savedHandle = await getSavedDirectoryHandle()
+  if (savedHandle && (await hasReadWritePermission(savedHandle))) {
+    runtimeRootHandle.value = savedHandle
+    return savedHandle
+  }
+
+  const pickedHandle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'infra-root' })
+  const rootHandle = await resolveInfrastructureDirectory(pickedHandle)
+  runtimeRootHandle.value = rootHandle
+  await saveDirectoryHandle(rootHandle)
+  return rootHandle
+}
+
+const getProjectFolderName = () => {
+  const localDirectory = project.value?.local_directory || projectLocalDirectory.value
+  const segments = localDirectory.split('\\').filter(Boolean)
+  const lastSegment = segments[segments.length - 1] || ''
+  const knownSubfolders = ['cao', 'archivos destacados', 'archivos fijos']
+
+  if (knownSubfolders.includes(lastSegment.toLowerCase())) {
+    return segments[segments.length - 2] || sanitizeFolderName(projectTitle.value)
+  }
+
+  return lastSegment || sanitizeFolderName(projectTitle.value)
+}
+
+const getLocalProjectFile = async () => {
+  if (typeof window.showDirectoryPicker !== 'function') {
+    throw new Error('Tu navegador no permite abrir archivos locales. Usa Chrome o Edge.')
+  }
+
+  const rootDirectory = await getInfrastructureRootHandle()
+  const projectFolderName = getProjectFolderName()
+  const projectDirectory = await rootDirectory.getDirectoryHandle(projectFolderName, {
+    create: false,
+  })
+  const fileHandle = await projectDirectory.getFileHandle(projectFileName.value, { create: false })
+  return fileHandle.getFile()
+}
+
+const listLocalFolderFiles = async (folderName) => {
+  if (typeof window.showDirectoryPicker !== 'function') {
+    throw new Error('Tu navegador no permite leer carpetas locales. Usa Chrome o Edge.')
+  }
+
+  const rootDirectory = await getInfrastructureRootHandle()
+  const projectFolderName = getProjectFolderName()
+  const projectDirectory = await rootDirectory.getDirectoryHandle(projectFolderName, {
+    create: false,
+  })
+
+  const targetDirectory = await projectDirectory.getDirectoryHandle(folderName, {
+    create: false,
+  })
+
+  const names = []
+  for await (const [entryName, entryHandle] of targetDirectory.entries()) {
+    if (entryHandle.kind === 'file') {
+      names.push(entryName)
+    }
+  }
+
+  names.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+  return names
+}
+
 const certificatesOpen = ref(false)
-const certificateItems = Array.from({ length: 7 }, (_, index) => index + 1)
+const certificateSummary = computed(() => {
+  if (caoItems.value.length === 0) return 'Sin CAO registrados'
+  return caoItems.value.map((item) => item.cao_code || item.title).join(', ')
+})
 
 const toggleCertificates = () => {
   certificatesOpen.value = !certificatesOpen.value
@@ -38,6 +230,137 @@ const toggleCertificates = () => {
 const goBackCertificate = () => {
   certificatesOpen.value = false
 }
+
+const closeFolderList = () => {
+  folderListOpen.value = false
+  folderListTitle.value = ''
+  folderFiles.value = []
+  folderError.value = ''
+}
+
+const openFolderFiles = async (folderName) => {
+  folderListOpen.value = true
+  folderListTitle.value = folderName
+  folderFiles.value = []
+  folderError.value = ''
+  folderLoading.value = true
+  certificatesOpen.value = false
+
+  try {
+    folderFiles.value = await listLocalFolderFiles(folderName)
+  } catch (error) {
+    folderError.value =
+      error?.message ||
+      `No se pudo listar la carpeta ${folderName}. Verifica su existencia y permisos locales.`
+  } finally {
+    folderLoading.value = false
+  }
+}
+
+const loadProjectDetail = async () => {
+  loading.value = true
+  loadError.value = ''
+  caoItems.value = []
+
+  try {
+    const projectId = route.query.id
+
+    let query = supabase
+      .from('project_files')
+      .select(
+        'id, title, place, year, file_type, cao_code, parent_file, parent_project_id, local_directory, local_file_name, file_url, preview_image_url, is_processed, created_at',
+      )
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (projectId) {
+      query = supabase
+        .from('project_files')
+        .select(
+          'id, title, place, year, file_type, cao_code, parent_file, parent_project_id, local_directory, local_file_name, file_url, preview_image_url, is_processed, created_at',
+        )
+        .eq('id', projectId)
+        .single()
+
+      const { data, error } = await query
+      if (error) throw error
+      project.value = data
+    } else {
+      const { data, error } = await query
+      if (error) throw error
+      project.value = data?.[0] || null
+    }
+
+    if (!project.value) {
+      loadError.value = 'No se encontro informacion del proyecto.'
+      return
+    }
+
+    const projectRootId = project.value.id
+
+    if (projectRootId) {
+      const { data: caoData, error: caoError } = await supabase
+        .from('cao_files')
+        .select('id, project_id, title, cao_code, local_directory, local_file_name')
+        .eq('project_id', projectRootId)
+        .order('created_at', { ascending: true })
+
+      if (caoError) throw caoError
+      caoItems.value = caoData || []
+    }
+
+    selectedLugar.value = project.value.place || ''
+    selectedAnio.value = project.value.year || ''
+  } catch (error) {
+    loadError.value = error?.message || 'No se pudo cargar el detalle del proyecto.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const openProjectPdf = () => {
+  actionError.value = ''
+
+  getLocalProjectFile()
+    .then((file) => {
+      const objectUrl = URL.createObjectURL(file)
+      window.open(objectUrl, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 15000)
+    })
+    .catch((error) => {
+      actionError.value =
+        error?.message ||
+        'No se pudo abrir el PDF local. Verifica que exista en E:\\Proyectos de Infraestructura.'
+    })
+}
+
+const downloadProjectPdf = async () => {
+  actionError.value = ''
+  isDownloading.value = true
+  try {
+    const file = await getLocalProjectFile()
+    const objectUrl = URL.createObjectURL(file)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = projectFileName.value
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(objectUrl)
+  } catch (error) {
+    actionError.value =
+      error?.message ||
+      'No se pudo descargar el PDF local. Verifica que exista en E:\\Proyectos de Infraestructura.'
+  } finally {
+    isDownloading.value = false
+  }
+}
+
+const goToAssistant = () => {
+  router.push('/panel/asistente')
+}
+
+onMounted(loadProjectDetail)
 </script>
 
 <template>
@@ -75,61 +398,58 @@ const goBackCertificate = () => {
         </div>
         <div class="project-text">
           <p class="label">Proyecto</p>
-          <strong>Construccion Tinglado RSAT-1 BUCH-ORURO</strong>
+          <strong>{{ projectTitle }}</strong>
         </div>
         <div>
           <p class="label blue">Lugar</p>
-          <strong>Oruro</strong>
+          <strong>{{ projectPlace }}</strong>
         </div>
         <div>
           <p class="label blue">Archivo</p>
-          <strong>Proyecto</strong>
+          <strong>{{ projectType }}</strong>
         </div>
         <div>
           <p class="label blue">Año</p>
-          <strong>2019</strong>
+          <strong>{{ projectYear }}</strong>
         </div>
         <RouterLink class="details-btn" to="/panel/proyectos" aria-label="Volver a proyectos">
           <img :src="IconFlechaIzquierda" alt="" aria-hidden="true" />
         </RouterLink>
       </div>
 
-      <h2>Construcción Tinglado RSAT-1 BUCH-ORURO</h2>
+      <h2>{{ projectTitle }}</h2>
+
+      <p v-if="loading" class="helper-text">Cargando detalle del proyecto...</p>
+      <p v-if="loadError" class="helper-text error">{{ loadError }}</p>
 
       <div class="detail-grid">
         <div class="preview-card">
-          <span class="tag">Proyecto</span>
-          <img class="mock-image" :src="projectPreview" alt="Documento del proyecto" />
-          <small>3 CAO</small>
+          <span class="tag">{{ projectTag }}</span>
+          <img class="mock-image" :src="previewSource" alt="Documento del proyecto" />
         </div>
 
         <div class="center-stack">
           <div class="description-card">
             <h3>Descripción</h3>
-            <p>
-              Brainstorming brings team members' diverse experience into play. Brainstorming brings
-              team members' diverse experience into play. Brainstorming brings team members' diverse
-              experience into play. Brainstorming brings team members' diverse experience into play.
-              Brainstorming brings team members' diverse experience into play.
-            </p>
+            <p>{{ descriptionText }}</p>
           </div>
 
           <div class="action-row">
-            <button class="action-box pink">
+            <button class="action-box pink" @click="openProjectPdf">
               <span class="action-title">Ver</span>
               <span class="action-icon">
                 <img :src="IconCarpeta" alt="Ver proyecto" />
               </span>
               <small>Ve el proyecto Completo</small>
             </button>
-            <button class="action-box yellow">
-              <span class="action-title">Descargar</span>
+            <button class="action-box yellow" :disabled="isDownloading" @click="downloadProjectPdf">
+              <span class="action-title">{{ isDownloading ? 'Descargando...' : 'Descargar' }}</span>
               <span class="action-icon">
                 <img :src="IconDescarga" alt="Descargar proyecto" />
               </span>
               <small>Descarga el Proyecto</small>
             </button>
-            <button class="action-box green">
+            <button class="action-box green" @click="goToAssistant">
               <span class="action-title">Agente</span>
               <span class="action-icon">
                 <img :src="IconPreguntas" alt="Agente de preguntas" />
@@ -137,6 +457,8 @@ const goBackCertificate = () => {
               <small>Agente de Preguntas</small>
             </button>
           </div>
+
+          <p v-if="actionError" class="helper-text error">{{ actionError }}</p>
         </div>
 
         <div class="side-stack">
@@ -148,12 +470,15 @@ const goBackCertificate = () => {
                 </span>
                 <span class="side-card-content">
                   <span class="side-card-title">Certificados de Avance de Obras</span>
-                  <span class="side-card-sub">1, 2, 3, 4, 5, 6, 7</span>
+                  <span class="side-card-sub">{{ certificateSummary }}</span>
                 </span>
                 <span class="side-card-arrow open" aria-hidden="true"></span>
               </button>
 
-              <button class="side-card side-card-plain">
+              <button
+                class="side-card side-card-plain"
+                @click="openFolderFiles('Archivos Destacados')"
+              >
                 <span class="side-icon">
                   <img :src="ArchivosDestacados" alt="Archivos Destacados" />
                 </span>
@@ -162,7 +487,7 @@ const goBackCertificate = () => {
                 </span>
               </button>
 
-              <button class="side-card side-card-plain">
+              <button class="side-card side-card-plain" @click="openFolderFiles('Archivos Fijos')">
                 <span class="side-icon">
                   <img :src="ArchivosFijos" alt="Archivos Fijos" />
                 </span>
@@ -179,23 +504,50 @@ const goBackCertificate = () => {
               </button>
 
               <div class="certificate-scroll certificate-list">
+                <p v-if="caoItems.length === 0" class="folder-state">No hay CAO registrados.</p>
                 <RouterLink
-                  v-for="item in certificateItems"
-                  :key="item"
-                  :to="`/panel/proyectos/cao/${item}`"
+                  v-for="item in caoItems"
+                  :key="item.id"
+                  :to="{
+                    path: `/panel/proyectos/cao/${item.id}`,
+                    query: { projectId: project?.id },
+                  }"
                   class="certificate-line certificate-link"
                 >
                   <span class="certificate-folder">
                     <img :src="IconCarpeta" alt="Carpeta" />
                   </span>
-                  <span class="certificate-text">Certificado de Avance de Obras {{ item }}</span>
+                  <span class="certificate-text">
+                    {{ item.cao_code || item.title }}
+                  </span>
                 </RouterLink>
+              </div>
+            </div>
+
+            <div v-if="folderListOpen" class="certificate-overlay">
+              <button class="certificate-back certificate-back-root" @click="closeFolderList">
+                <span class="side-card-arrow left" aria-hidden="true"></span>
+                <span>{{ folderListTitle }}</span>
+              </button>
+
+              <div class="certificate-scroll certificate-list">
+                <p v-if="folderLoading" class="folder-state">Cargando archivos...</p>
+                <p v-else-if="folderError" class="folder-state error">{{ folderError }}</p>
+                <p v-else-if="folderFiles.length === 0" class="folder-state">
+                  No hay archivos en esta carpeta.
+                </p>
+                <div v-else v-for="name in folderFiles" :key="name" class="certificate-line">
+                  <span class="certificate-folder">
+                    <img :src="IconCarpeta" alt="Archivo" />
+                  </span>
+                  <span class="certificate-text">{{ name }}</span>
+                </div>
               </div>
             </div>
           </div>
           <div class="year-box">
-            <span>2019</span>
-            <span>ORURO</span>
+            <span>{{ projectYear }}</span>
+            <span>{{ projectPlace.toUpperCase() }}</span>
           </div>
         </div>
       </div>
@@ -412,6 +764,16 @@ h2 {
   line-height: 1.05;
 }
 
+.helper-text {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #4f5a7b;
+}
+
+.helper-text.error {
+  color: #b42323;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 2fr 1.6fr;
@@ -488,6 +850,7 @@ h2 {
   color: #6d7487;
   line-height: 1.45;
   font-size: 0.92rem;
+  white-space: pre-line;
 }
 
 .action-row {
@@ -517,6 +880,11 @@ h2 {
   padding: 0.72rem 0.8rem;
   text-align: left;
   color: #31365f;
+
+  &:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+  }
 }
 
 .pink {
@@ -772,6 +1140,17 @@ h2 {
 
 .certificate-text {
   flex: 1;
+}
+
+.folder-state {
+  margin: 0;
+  padding: 0.45rem 0.25rem;
+  color: #5f6784;
+  font-size: 0.9rem;
+}
+
+.folder-state.error {
+  color: #b42323;
 }
 
 .side-icon.small {

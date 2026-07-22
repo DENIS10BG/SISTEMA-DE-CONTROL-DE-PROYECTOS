@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import projectPreview from '../../assets/images/IngenieroProyetos.png'
 import IconCarpeta from '@/components/icons/IconsProyect/Carpeta.svg'
 import IconCertificados from '@/components/icons/IconsProyect/Certificados.svg'
@@ -10,6 +10,7 @@ import IconDescarga from '@/components/icons/IconsProyect/Descarga.svg'
 import IconPreguntas from '@/components/icons/IconsProyect/Preguntas.svg'
 import IconFiltro from '@/components/icons/IconsUser/FiltroUsuario.svg'
 import IconFlechaIzquierda from '@/components/icons/IconsUser/FlechaIzquierda.svg'
+import { supabase } from '../../../utils/supabase'
 
 const lugares = [
   'La Paz',
@@ -28,16 +29,252 @@ const anios = Array.from({ length: 17 }, (_, index) => String(2026 - index))
 const selectedLugar = ref('')
 const selectedAnio = ref('')
 
-const certificatesOpen = ref(true)
-const certificateItems = Array.from({ length: 7 }, (_, index) => index + 1)
 const route = useRoute()
+const router = useRouter()
+
+const caoRecord = ref(null)
+const parentProject = ref(null)
+const siblingCaos = ref([])
+const loading = ref(false)
+const loadError = ref('')
+const actionError = ref('')
+const isDownloading = ref(false)
+
+const DIRECTORY_DB_NAME = 'sicepi-local-directory'
+const DIRECTORY_STORE_NAME = 'handles'
+const DIRECTORY_HANDLE_KEY = 'infra-root'
+const INFRASTRUCTURE_ROOT_NAME = 'Proyectos de Infraestructura'
+const runtimeRootHandle = ref(null)
+
+const certificatesOpen = ref(true)
 
 const selectedCaoId = computed(() => {
-  const parsed = Number(route.params.id)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+  return String(route.params.id || '')
 })
 
-const toggleCertificates = () => {}
+const caoTitle = computed(() => caoRecord.value?.title || 'CAO')
+const caoCode = computed(() => caoRecord.value?.cao_code || 'Sin codigo')
+const caoPlace = computed(() => caoRecord.value?.place || parentProject.value?.place || '-')
+const caoYear = computed(() => caoRecord.value?.year || parentProject.value?.year || '-')
+const caoFileName = computed(() => caoRecord.value?.local_file_name || 'Sin archivo')
+const projectSummary = computed(() => parentProject.value?.title || 'Proyecto relacionado')
+const certificateSummary = computed(() => {
+  if (siblingCaos.value.length === 0) return 'Sin CAO registrados'
+  return siblingCaos.value.map((item) => item.cao_code || item.title).join(', ')
+})
+const descriptionText = computed(() => {
+  const lines = [
+    `Proyecto: ${projectSummary.value}`,
+    `CAO: ${caoCode.value}`,
+    `Titulo: ${caoTitle.value}`,
+    `Lugar: ${caoPlace.value}`,
+    `Año: ${caoYear.value}`,
+    `Ruta local: ${caoRecord.value?.local_directory || '-'}\\${caoFileName.value}`,
+  ]
+
+  return lines.join('\n')
+})
+
+const sanitizeFolderName = (value) =>
+  (value || 'Proyecto')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, ' ')
+
+const openDirectoryDb = () =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open(DIRECTORY_DB_NAME, 1)
+
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(DIRECTORY_STORE_NAME)) {
+        db.createObjectStore(DIRECTORY_STORE_NAME)
+      }
+    }
+
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+
+const getSavedDirectoryHandle = async () => {
+  const db = await openDirectoryDb()
+  const handle = await new Promise((resolve, reject) => {
+    const tx = db.transaction(DIRECTORY_STORE_NAME, 'readonly')
+    const request = tx.objectStore(DIRECTORY_STORE_NAME).get(DIRECTORY_HANDLE_KEY)
+    request.onsuccess = () => resolve(request.result || null)
+    request.onerror = () => reject(request.error)
+  })
+  db.close()
+  return handle
+}
+
+const saveDirectoryHandle = async (handle) => {
+  const db = await openDirectoryDb()
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(DIRECTORY_STORE_NAME, 'readwrite')
+    tx.objectStore(DIRECTORY_STORE_NAME).put(handle, DIRECTORY_HANDLE_KEY)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+  db.close()
+}
+
+const hasReadWritePermission = async (handle, allowPrompt = true) => {
+  if (!handle) return false
+
+  const options = { mode: 'readwrite' }
+  if ((await handle.queryPermission(options)) === 'granted') return true
+  if (allowPrompt && (await handle.requestPermission(options)) === 'granted') return true
+  return false
+}
+
+const resolveInfrastructureDirectory = async (pickedHandle) => {
+  const pickedName = (pickedHandle?.name || '').toLowerCase()
+  const targetName = INFRASTRUCTURE_ROOT_NAME.toLowerCase()
+
+  if (pickedName === targetName) {
+    return pickedHandle
+  }
+
+  return pickedHandle.getDirectoryHandle(INFRASTRUCTURE_ROOT_NAME, { create: false })
+}
+
+const getInfrastructureRootHandle = async () => {
+  if (runtimeRootHandle.value && (await hasReadWritePermission(runtimeRootHandle.value, false))) {
+    return runtimeRootHandle.value
+  }
+
+  const savedHandle = await getSavedDirectoryHandle()
+  if (savedHandle && (await hasReadWritePermission(savedHandle))) {
+    runtimeRootHandle.value = savedHandle
+    return savedHandle
+  }
+
+  const pickedHandle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'infra-root' })
+  const rootHandle = await resolveInfrastructureDirectory(pickedHandle)
+  runtimeRootHandle.value = rootHandle
+  await saveDirectoryHandle(rootHandle)
+  return rootHandle
+}
+
+const getProjectFolderName = () => {
+  const localDirectory = parentProject.value?.local_directory || ''
+  const segments = localDirectory.split('\\').filter(Boolean)
+  return segments.at(-1) || sanitizeFolderName(parentProject.value?.title)
+}
+
+const getCaoFolderName = () => sanitizeFolderName(caoTitle.value)
+
+const getLocalCaoFile = async () => {
+  if (typeof window.showDirectoryPicker !== 'function') {
+    throw new Error('Tu navegador no permite abrir archivos locales. Usa Chrome o Edge.')
+  }
+
+  const rootDirectory = await getInfrastructureRootHandle()
+  const projectFolderName = getProjectFolderName()
+  const projectDirectory = await rootDirectory.getDirectoryHandle(projectFolderName, {
+    create: false,
+  })
+  const caoDirectory = await projectDirectory.getDirectoryHandle('CAO', { create: false })
+  const targetDirectory = await caoDirectory.getDirectoryHandle(getCaoFolderName(), {
+    create: false,
+  })
+  const fileHandle = await targetDirectory.getFileHandle(caoFileName.value, { create: false })
+  return fileHandle.getFile()
+}
+
+const toggleCertificates = () => {
+  certificatesOpen.value = !certificatesOpen.value
+}
+
+const openCaoPdf = () => {
+  actionError.value = ''
+
+  getLocalCaoFile()
+    .then((file) => {
+      const objectUrl = URL.createObjectURL(file)
+      window.open(objectUrl, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 15000)
+    })
+    .catch((error) => {
+      actionError.value = error?.message || 'No se pudo abrir el archivo local del CAO.'
+    })
+}
+
+const downloadCaoPdf = async () => {
+  actionError.value = ''
+  isDownloading.value = true
+
+  try {
+    const file = await getLocalCaoFile()
+    const objectUrl = URL.createObjectURL(file)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = caoFileName.value
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(objectUrl)
+  } catch (error) {
+    actionError.value = error?.message || 'No se pudo descargar el archivo local del CAO.'
+  } finally {
+    isDownloading.value = false
+  }
+}
+
+const goToAssistant = () => {
+  router.push('/panel/asistente')
+}
+
+const loadCaoDetail = async () => {
+  loading.value = true
+  loadError.value = ''
+  actionError.value = ''
+  caoRecord.value = null
+  parentProject.value = null
+  siblingCaos.value = []
+
+  try {
+    const { data: caoData, error: caoError } = await supabase
+      .from('cao_files')
+      .select('id, project_id, title, cao_code, place, year, local_directory, local_file_name')
+      .eq('id', selectedCaoId.value)
+      .single()
+
+    if (caoError) throw caoError
+    caoRecord.value = caoData
+
+    const { data: projectData, error: projectError } = await supabase
+      .from('project_files')
+      .select(
+        'id, title, place, year, local_directory, featured_directory, fixed_directory, cao_directory',
+      )
+      .eq('id', caoData.project_id)
+      .single()
+
+    if (projectError) throw projectError
+    parentProject.value = projectData
+
+    const { data: siblingsData, error: siblingsError } = await supabase
+      .from('cao_files')
+      .select('id, title, cao_code')
+      .eq('project_id', caoData.project_id)
+      .order('created_at', { ascending: true })
+
+    if (siblingsError) throw siblingsError
+    siblingCaos.value = siblingsData || []
+
+    selectedLugar.value = caoData.place || projectData.place || ''
+    selectedAnio.value = caoData.year || projectData.year || ''
+  } catch (error) {
+    loadError.value = error?.message || 'No se pudo cargar el detalle del CAO.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadCaoDetail)
+watch(() => route.params.id, loadCaoDetail)
 </script>
 
 <template>
@@ -75,61 +312,62 @@ const toggleCertificates = () => {}
         </div>
         <div class="project-text">
           <p class="label">CAO</p>
-          <strong>Certificado de Avance de Obras {{ selectedCaoId }}</strong>
+          <strong>{{ caoTitle }}</strong>
         </div>
         <div>
           <p class="label blue">Lugar</p>
-          <strong>Oruro</strong>
+          <strong>{{ caoPlace }}</strong>
         </div>
         <div>
           <p class="label blue">CAO</p>
-          <strong>Certificado {{ selectedCaoId }}</strong>
+          <strong>{{ caoCode }}</strong>
         </div>
         <div>
           <p class="label blue">Año</p>
-          <strong>2019</strong>
+          <strong>{{ caoYear }}</strong>
         </div>
-        <RouterLink class="details-btn" to="/panel/proyectos" aria-label="Volver a proyectos">
+        <RouterLink
+          class="details-btn"
+          :to="{ path: '/panel/proyectos/detalle', query: { id: parentProject?.id } }"
+          aria-label="Volver al proyecto"
+        >
           <img :src="IconFlechaIzquierda" alt="" aria-hidden="true" />
         </RouterLink>
       </div>
 
-      <h2>Certificado de Avance de Obras {{ selectedCaoId }}</h2>
+      <h2>{{ caoTitle }}</h2>
+
+      <p v-if="loading" class="helper-text">Cargando detalle del CAO...</p>
+      <p v-if="loadError" class="helper-text error">{{ loadError }}</p>
 
       <div class="detail-grid">
         <div class="preview-card">
           <span class="tag">CAO</span>
           <img class="mock-image" :src="projectPreview" alt="Documento del proyecto" />
-          <small>CAO {{ selectedCaoId }}</small>
         </div>
 
         <div class="center-stack">
           <div class="description-card">
             <h3>Descripción</h3>
-            <p>
-              Brainstorming brings team members' diverse experience into play. Brainstorming brings
-              team members' diverse experience into play. Brainstorming brings team members' diverse
-              experience into play. Brainstorming brings team members' diverse experience into play.
-              Brainstorming brings team members' diverse experience into play.
-            </p>
+            <p>{{ descriptionText }}</p>
           </div>
 
           <div class="action-row">
-            <button class="action-box pink">
+            <button class="action-box pink" @click="openCaoPdf">
               <span class="action-title">Ver</span>
               <span class="action-icon">
                 <img :src="IconCarpeta" alt="Ver proyecto" />
               </span>
               <small>Ve el proyecto Completo</small>
             </button>
-            <button class="action-box yellow">
-              <span class="action-title">Descargar</span>
+            <button class="action-box yellow" :disabled="isDownloading" @click="downloadCaoPdf">
+              <span class="action-title">{{ isDownloading ? 'Descargando...' : 'Descargar' }}</span>
               <span class="action-icon">
                 <img :src="IconDescarga" alt="Descargar proyecto" />
               </span>
               <small>Descarga el Proyecto</small>
             </button>
-            <button class="action-box green">
+            <button class="action-box green" @click="goToAssistant">
               <span class="action-title">Agente</span>
               <span class="action-icon">
                 <img :src="IconPreguntas" alt="Agente de preguntas" />
@@ -137,18 +375,20 @@ const toggleCertificates = () => {}
               <small>Agente de Preguntas</small>
             </button>
           </div>
+
+          <p v-if="actionError" class="helper-text error">{{ actionError }}</p>
         </div>
 
         <div class="side-stack">
           <div class="certificate-panel">
             <div class="certificate-root">
-              <button class="side-card side-card-expand">
+              <button class="side-card side-card-expand" @click="toggleCertificates">
                 <span class="side-icon">
                   <img :src="IconCertificados" alt="Certificados de obras" />
                 </span>
                 <span class="side-card-content">
                   <span class="side-card-title">Certificados de Avance de Obras</span>
-                  <span class="side-card-sub">1, 2, 3, 4, 5, 6, 7</span>
+                  <span class="side-card-sub">{{ certificateSummary }}</span>
                 </span>
                 <span class="side-card-arrow open" aria-hidden="true"></span>
               </button>
@@ -178,24 +418,25 @@ const toggleCertificates = () => {}
               </div>
 
               <div class="certificate-scroll certificate-list">
+                <p v-if="siblingCaos.length === 0" class="helper-text">No hay CAO registrados.</p>
                 <RouterLink
-                  v-for="item in certificateItems"
-                  :key="item"
-                  :to="`/panel/proyectos/cao/${item}`"
+                  v-for="item in siblingCaos"
+                  :key="item.id"
+                  :to="`/panel/proyectos/cao/${item.id}`"
                   class="certificate-line certificate-link"
-                  :class="{ active: item === selectedCaoId }"
+                  :class="{ active: item.id === selectedCaoId }"
                 >
                   <span class="certificate-folder">
                     <img :src="IconCarpeta" alt="Carpeta" />
                   </span>
-                  <span class="certificate-text">Certificado de Avance de Obras {{ item }}</span>
+                  <span class="certificate-text">{{ item.cao_code || item.title }}</span>
                 </RouterLink>
               </div>
             </div>
           </div>
           <div class="year-box">
-            <span>2019</span>
-            <span>ORURO</span>
+            <span>{{ caoYear }}</span>
+            <span>{{ String(caoPlace).toUpperCase() }}</span>
           </div>
         </div>
       </div>
@@ -412,6 +653,16 @@ h2 {
   line-height: 1.05;
 }
 
+.helper-text {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #4f5a7b;
+}
+
+.helper-text.error {
+  color: #b42323;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 2fr 1.6fr;
@@ -488,6 +739,7 @@ h2 {
   color: #6d7487;
   line-height: 1.45;
   font-size: 0.92rem;
+  white-space: pre-line;
 }
 
 .action-row {
@@ -517,6 +769,11 @@ h2 {
   padding: 0.72rem 0.8rem;
   text-align: left;
   color: #31365f;
+
+  &:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+  }
 }
 
 .pink {
